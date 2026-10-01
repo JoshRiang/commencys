@@ -1,0 +1,20 @@
+flowchart LR
+    W["Warga<br/>SOS + manual pin"]
+    V["Relawan<br/>accept + ETA"]
+    K["Koordinator<br/>triage + correction"]
+    API["FastAPI<br/>REST + WS gateway"]
+    AI["IndoBERT + DBSCAN<br/>BackgroundTasks (async)"]
+    DB[("PostgreSQL/PostGIS<br/>incidents + audit")]
+    OSRM["OSRM<br/>route + ETA"]
+
+    W -->|"POST /api/sos<br/>&lt; 5 s ack"| API
+    V -->|"POST dispatch"| API
+    K -->|"review / split"| API
+    API -->|"persist"| DB
+    API -->|"enqueue"| AI
+    AI -->|"metadata only"| DB
+    API -->|"WS /ws/alerts"| V
+    API -->|"WS /ws/alerts"| K
+    API -->|"WS /ws/alerts"| W
+    API -->|"proxy"| OSRM
+    OSRM --> V

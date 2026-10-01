@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../models/incident.dart';
 import '../services/api_client.dart';
 import '../services/location_service.dart';
+import '../widgets/status_timeline.dart';
 
+/// One-tap SOS (spec criterion 1): GPS auto-attach (+accuracy radius),
+/// stored+acked by the backend in < 5 s, with transparent ticket status
+/// (criterion 3: acknowledged ≠ dispatched).
 class SosScreen extends StatefulWidget {
   const SosScreen({super.key});
 
@@ -14,7 +19,8 @@ class _SosScreenState extends State<SosScreen> {
   final _api = ApiClient();
   final _location = LocationService();
   bool _sending = false;
-  String _status = 'Press and hold SOS to send your live location.';
+  String _status = 'Press SOS to send your live location.';
+  Incident? _ticket;
 
   @override
   void dispose() {
@@ -26,6 +32,7 @@ class _SosScreenState extends State<SosScreen> {
     setState(() {
       _sending = true;
       _status = 'Getting your location...';
+      _ticket = null;
     });
     try {
       final pos = await _location.currentPosition();
@@ -34,12 +41,18 @@ class _SosScreenState extends State<SosScreen> {
         return;
       }
       setState(() => _status = 'Sending SOS...');
-      await _api.sendSos(
+      // GPS + accuracy radius (spec station 1); manual pin adjustment is a
+      // tracked TODO on the map screen (docs/03-implementation.md).
+      final ticket = await _api.sendSos(
         latitude: pos.latitude,
         longitude: pos.longitude,
+        accuracyM: pos.accuracy,
         reporterName: 'App User',
       );
-      setState(() => _status = 'SOS SENT. Help is on the way.');
+      setState(() {
+        _ticket = ticket;
+        _status = 'SOS received by system (id ${ticket.id}).';
+      });
     } catch (e) {
       setState(() => _status = 'Failed to send SOS: $e');
     } finally {
@@ -98,9 +111,20 @@ class _SosScreenState extends State<SosScreen> {
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 16),
               ),
+              if (_ticket != null) ...[
+                const SizedBox(height: 16),
+                StatusTimeline(status: _ticket!.status),
+                const SizedBox(height: 8),
+                Text(
+                  'Urgency ${(_ticket!.urgency.name).toUpperCase()} '
+                  '(triage pending)',
+                  style: const TextStyle(color: Colors.grey),
+                ),
+              ],
               const SizedBox(height: 16),
               const Text(
-                'Your GPS coordinates are shared with nearby responders and the command center.',
+                'Community early-response aid — not a substitute for '
+                'emergency services 112 / 119.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.grey),
               ),

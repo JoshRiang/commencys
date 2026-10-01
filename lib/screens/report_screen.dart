@@ -17,17 +17,17 @@ class _ReportScreenState extends State<ReportScreen> {
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   final _nameCtrl = TextEditingController();
-  String _category = 'fire';
+  String _category = 'medical';
   String _severity = 'medium';
   bool _sending = false;
 
   final List<String> _categories = [
-    'fire',
     'medical',
-    'crime',
     'accident',
-    'flood',
-    'general',
+    'fire',
+    'security',
+    'facility',
+    'other',
   ];
   final List<String> _severities = ['low', 'medium', 'high', 'critical'];
 
@@ -51,6 +51,7 @@ class _ReportScreenState extends State<ReportScreen> {
         category: _category,
         latitude: pos?.latitude ?? -6.2,
         longitude: pos?.longitude ?? 106.8,
+        accuracyM: pos?.accuracy,
         severity: _severity,
         reporterName:
             _nameCtrl.text.trim().isEmpty ? 'Anonymous' : _nameCtrl.text.trim(),
@@ -113,7 +114,7 @@ class _ReportScreenState extends State<ReportScreen> {
               items: _categories
                   .map((c) => DropdownMenuItem(value: c, child: Text(c)))
                   .toList(),
-              onChanged: (v) => setState(() => _category = v ?? 'fire'),
+              onChanged: (v) => setState(() => _category = v ?? 'medical'),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(

@@ -21,4 +21,44 @@ void main() {
     expect(restored.severity, IncidentSeverity.high);
     expect(restored.status, IncidentStatus.reported);
   });
+
+  test('Canonical ticket parses urgency + AI metadata', () {
+    final restored = Incident.fromJson({
+      'id': 'abc123',
+      'title': 'SOS',
+      'description': 'One-tap SOS',
+      'category': 'sos',
+      'latitude': -6.36,
+      'longitude': 106.82,
+      'accuracy_m': 12.5,
+      'urgency': 'P1',
+      'urgency_source': 'sos_default_pending_triage',
+      'status': 'acknowledged',
+      'ai_category': 'fire',
+      'ai_confidence': 0.81,
+      'needs_review': false,
+      'cluster_id': null,
+      'created_at': '2026-10-01T00:00:00Z',
+      'reporter_name': 'App User',
+    });
+    expect(restored.urgency, IncidentUrgency.p1);
+    expect(restored.status, IncidentStatus.acknowledged);
+    expect(restored.accuracyM, 12.5);
+    expect(restored.aiConfidence, 0.81);
+    expect(restored.needsReview, isFalse);
+  });
+
+  test('Lifecycle includes broadcast between ack and dispatch', () {
+    expect(IncidentStatus.values.map((e) => e.name), containsAll([
+      'reported',
+      'acknowledged',
+      'broadcast',
+      'dispatched',
+      'resolved',
+    ]));
+    expect(IncidentStatus.broadcast.index,
+        greaterThan(IncidentStatus.acknowledged.index));
+    expect(IncidentStatus.broadcast.index,
+        lessThan(IncidentStatus.dispatched.index));
+  });
 }
