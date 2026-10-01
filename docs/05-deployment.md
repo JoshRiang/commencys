@@ -69,4 +69,7 @@ tag `vX.Y.Z`.
 
 | Version | APK | Size | SHA-256 | CI run | Notes |
 |---------|-----|------|---------|--------|-------|
-| _pending first Commencys build_ | — | — | — | — | filled in by the release step below |
+| 1.0.0 (`8c15973`, 2026-10-02) | `commencys-8c15973-20261002.apk` | 52.5 MB | `8bf33393…db76fa` | [CI #36911073696](https://github.com/JoshRiang/commencys/actions/runs/36911073696) | first Commencys build: `com.commencys.app`, analyze clean, 5/5 tests |
+
+Full SHA-256: `8bf33393860b81da1322e30921c8f11503a6b41a7e95905b916fd9c2e4db76fa`.
+Download: `http://<host>:8765/commencys-8c15973-20261002.apk` (local file server).
