@@ -1,4 +1,4 @@
-# 04 — Testing (Pengujian)
+# 04 — Testing
 
 ## Layers
 

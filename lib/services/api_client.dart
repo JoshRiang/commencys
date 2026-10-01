@@ -3,17 +3,25 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../models/incident.dart';
+import 'app_config.dart';
 
 /// HTTP client for the Commencys FastAPI backend (see docs/api-contract.md).
 class ApiClient {
+  /// Hard ceiling per request so a phone on a dead network fails fast
+  /// (10 s) instead of hanging the UI indefinitely.
+  static const requestTimeout = Duration(seconds: 10);
+
   final String baseUrl;
   final http.Client _client;
 
-  ApiClient({this.baseUrl = 'http://10.0.2.2:8000', http.Client? client})
-      : _client = client ?? http.Client();
+  ApiClient({String? baseUrl, http.Client? client})
+      : baseUrl = baseUrl ?? AppConfig.baseUrl,
+        _client = client ?? http.Client();
 
   Future<List<Incident>> fetchIncidents() async {
-    final res = await _client.get(Uri.parse('$baseUrl/api/incidents'));
+    final res = await _client
+        .get(Uri.parse('$baseUrl/api/incidents'))
+        .timeout(requestTimeout);
     if (res.statusCode != 200) {
       throw Exception('Failed to load incidents (${res.statusCode})');
     }
@@ -33,20 +41,22 @@ class ApiClient {
     required String severity,
     required String reporterName,
   }) async {
-    final res = await _client.post(
-      Uri.parse('$baseUrl/api/incidents'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'title': title,
-        'description': description,
-        'category': category,
-        'latitude': latitude,
-        'longitude': longitude,
-        'accuracy_m': accuracyM,
-        'severity': severity,
-        'reporter_name': reporterName,
-      }),
-    );
+    final res = await _client
+        .post(
+          Uri.parse('$baseUrl/api/incidents'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'title': title,
+            'description': description,
+            'category': category,
+            'latitude': latitude,
+            'longitude': longitude,
+            'accuracy_m': accuracyM,
+            'severity': severity,
+            'reporter_name': reporterName,
+          }),
+        )
+        .timeout(requestTimeout);
     if (res.statusCode != 200 && res.statusCode != 201) {
       throw Exception('Failed to create incident (${res.statusCode})');
     }
@@ -62,17 +72,19 @@ class ApiClient {
     String? description,
     required String reporterName,
   }) async {
-    final res = await _client.post(
-      Uri.parse('$baseUrl/api/sos'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'latitude': latitude,
-        'longitude': longitude,
-        'accuracy_m': accuracyM,
-        'description': description,
-        'reporter_name': reporterName,
-      }),
-    );
+    final res = await _client
+        .post(
+          Uri.parse('$baseUrl/api/sos'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'latitude': latitude,
+            'longitude': longitude,
+            'accuracy_m': accuracyM,
+            'description': description,
+            'reporter_name': reporterName,
+          }),
+        )
+        .timeout(requestTimeout);
     if (res.statusCode != 200 && res.statusCode != 201) {
       throw Exception('Failed to send SOS (${res.statusCode})');
     }
@@ -84,10 +96,12 @@ class ApiClient {
     required String ticketId,
     required String volunteer,
   }) async {
-    final res = await _client.post(
-      Uri.parse('$baseUrl/api/incidents/$ticketId/dispatch'
-          '?volunteer=${Uri.encodeComponent(volunteer)}'),
-    );
+    final res = await _client
+        .post(
+          Uri.parse('$baseUrl/api/incidents/$ticketId/dispatch'
+              '?volunteer=${Uri.encodeComponent(volunteer)}'),
+        )
+        .timeout(requestTimeout);
     if (res.statusCode != 200) {
       throw Exception('Failed to dispatch (${res.statusCode})');
     }

@@ -1,4 +1,4 @@
-package com.example.emergency_community_response_911
+package com.commencys.app
 
 import io.flutter.embedding.android.FlutterActivity
 

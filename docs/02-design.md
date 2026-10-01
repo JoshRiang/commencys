@@ -1,4 +1,4 @@
-# 02 — Design (Perancangan)
+# 02 — Design
 
 ## Architecture
 
@@ -38,7 +38,7 @@ node. AI enriches stored rows afterwards (criterion 4).
 
 - `acknowledged` = "Laporan Diterima Sistem" (stored, nothing more).
 - `broadcast` = notifications fanned out to volunteers.
-- `dispatched` = a named volunteer accepted ("Relawan Telah Mengambil Tugas").
+- `dispatched` = a named volunteer accepted the ticket.
 - The UI renders these as a stepper; acknowledged must never be styled as
   dispatched (criterion 3).
 

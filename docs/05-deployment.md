@@ -1,4 +1,13 @@
-# 05 — Deployment (Penyebaran)
+# 05 — Deployment
+
+## Table of contents
+
+- [Backend (FastAPI)](#backend-fastapi)
+- [Mobile client (Flutter)](#mobile-client-flutter)
+- [Phone install](#phone-install)
+- [Environment matrix](#environment-matrix)
+- [Release gate](#release-gate)
+- [Release history](#release-history)
 
 ## Backend (FastAPI)
 
@@ -21,9 +30,25 @@ flutter pub get && flutter analyze && flutter test
 flutter build apk --release   # CI also produces app-release.apk artifact
 ```
 
-Point `ApiClient.baseUrl` at the deployed backend (LAN IP for devices;
-emulator keeps `http://10.0.2.2:8000`). OSM tiles require network; offline
-map packs are a post-MVP hardening item.
+Backend address resolution (in order):
+
+1. In-app server setting (server icon in the app bar, per session).
+2. `--dart-define=API_BASE=http://<host>:8000` baked into the build.
+3. Emulator default `http://10.0.2.2:8000` (host loopback, emulator only).
+
+OSM tiles require network; offline map packs are a post-MVP hardening item.
+
+## Phone install
+
+1. Download the versioned APK from [Release history](#release-history)
+   (served over the local file server; verify the SHA-256 below after
+   download).
+2. Open it on the phone — Android asks for a one-time "install unknown apps"
+   confirmation, then installs **Commencys** (`com.commencys.app`).
+3. Start the backend on the same network (`uvicorn ... --host 0.0.0.0`),
+   set the server URL in-app, send a test SOS.
+4. SOS needs GPS + network: allow location when prompted, keep the phone
+   online (map tiles, API, and live alerts all need connectivity).
 
 ## Environment matrix
 
@@ -31,9 +56,17 @@ map packs are a post-MVP hardening item.
 |-----|---------|---------|
 | `OSRM_BASE_URL` | routed ETA proxy target | unset → labelled stub |
 | backend host/port | deploy binding | `0.0.0.0:8000` |
-| `ApiClient.baseUrl` | client → backend | `http://10.0.2.2:8000` |
+| `API_BASE` (dart-define) | baked-in client → backend | `http://10.0.2.2:8000` |
+| in-app server setting | runtime client → backend | overrides `API_BASE` |
 
 ## Release gate
 
 CI green (`ci.yml`: backend pytest + flutter analyze/test/release build) →
-manual QA checklist (`04-testing.md`) → tag `vX.Y.Z` → attach release APK.
+manual QA checklist (`04-testing.md`) → versioned APK published below →
+tag `vX.Y.Z`.
+
+## Release history
+
+| Version | APK | Size | SHA-256 | CI run | Notes |
+|---------|-----|------|---------|--------|-------|
+| _pending first Commencys build_ | — | — | — | — | filled in by the release step below |

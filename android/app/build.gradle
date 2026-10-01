@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.emergency_community_response_911"
+    namespace = "com.commencys.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -19,7 +19,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.emergency_community_response_911"
+        applicationId = "com.commencys.app"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

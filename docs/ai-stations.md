@@ -1,6 +1,6 @@
-# AI Stations Mapping (spec: 9 stasiun arsitektur AI)
+# AI Stations Mapping (9-station AI architecture)
 
-Source: spec "Designing an AI-Powered Feature" (Kelompok 10, 25 Sep 2026).
+Design reference: "Designing an AI-Powered Feature" (Sep 2026).
 Each station: function → project realisation → repo pointer.
 
 ## 1. Data & ETL Pipelines — collecting and tidying reports
@@ -59,7 +59,7 @@ mutation authority.
 Reporter flow (Flutter app — spec's PWA role) → FastAPI validation →
 PostgreSQL/PostGIS → async IndoBERT + DBSCAN → WebSocket gateway fan-out →
 OSRM shortest-route + ETA. UI strictly separates "Laporan Diterima Sistem"
-(acknowledged) from "Relawan Telah Mengambil Tugas" (dispatched).
+(acknowledged) from a volunteer accepting the ticket (dispatched).
 → `docs/02-design.md` (diagram), `backend/app/main.py`, `lib/`
 
 ## 8. Evaluation & Monitoring — measuring quality continuously

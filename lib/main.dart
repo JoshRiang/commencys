@@ -6,16 +6,16 @@ import 'screens/map_screen.dart';
 import 'screens/alerts_screen.dart';
 
 void main() {
-  runApp(const Emergency911App());
+  runApp(const CommencysApp());
 }
 
-class Emergency911App extends StatelessWidget {
-  const Emergency911App({super.key});
+class CommencysApp extends StatelessWidget {
+  const CommencysApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '911 Emergency Response',
+      title: 'Commencys',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(

@@ -1,4 +1,4 @@
-# 01 — Analysis (Analisis)
+# 01 — Analysis
 
 ## User story
 

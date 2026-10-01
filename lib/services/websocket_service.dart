@@ -5,6 +5,7 @@ import 'dart:math';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../models/incident.dart';
+import 'app_config.dart';
 
 /// WebSocket coordination channel for live incident alerts.
 ///
@@ -20,7 +21,7 @@ class CoordinationSocket {
   int _attempt = 0;
   bool _disposed = false;
 
-  CoordinationSocket({this.url = 'ws://10.0.2.2:8000/ws/alerts'});
+  CoordinationSocket({String? url}) : url = url ?? AppConfig.wsUrl;
 
   Stream<Map<String, dynamic>> get messages => _controller.stream;
 

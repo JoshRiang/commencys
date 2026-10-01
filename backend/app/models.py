@@ -1,6 +1,6 @@
 """Commencys backend — Pydantic schemas (spec taxonomy).
 
-Spec refs: Individual Assignment §1 (acceptance criteria), AI stations §4
+Spec refs: acceptance criteria (§1), AI stations §4
 (taxonomy + P1–P4 urgency), §7 (acknowledged vs dispatched transparency).
 """
 

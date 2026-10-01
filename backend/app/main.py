@@ -1,6 +1,6 @@
 """Commencys backend skeleton (FastAPI) — MVP hot path.
 
-Implements the spec's critical path (Individual Assignment, criteria 2+4):
+Implements the critical path (acceptance criteria 2+4):
   * POST /api/sos and POST /api/incidents persist + acknowledge in <5 s.
   * IndoBERT/DBSCAN run as non-blocking BackgroundTasks (ai_pipeline.py).
   * Status transparency: acknowledged → broadcast → dispatched → resolved.

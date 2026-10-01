@@ -20,8 +20,16 @@ class LocationService {
   Future<Position?> currentPosition() async {
     final ok = await ensurePermission();
     if (!ok) return null;
-    return Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
+    try {
+      // Fail fast on a phone with no fix (indoors, GPS off) instead of
+      // hanging the SOS flow indefinitely.
+      return await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 15),
+      ).timeout(const Duration(seconds: 20));
+    } catch (_) {
+      return null;
+    }
   }
 
   /// GPS fix accuracy in metres (null when unavailable).

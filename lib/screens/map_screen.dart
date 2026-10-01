@@ -87,8 +87,7 @@ class _MapScreenState extends State<MapScreen> {
               TileLayer(
                 urlTemplate:
                     'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName:
-                    'com.example.emergency_community_response_911',
+                userAgentPackageName: 'com.commencys.app',
               ),
               MarkerLayer(
                 markers: _incidents

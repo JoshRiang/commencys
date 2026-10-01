@@ -1,6 +1,6 @@
-# Commencys — 911 Emergency Community Response Platform
+# Commencys — Community Emergency Response Platform
 
-![CI](https://github.com/JoshRiang/emergency-community-response-911/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/JoshRiang/commencys/actions/workflows/ci.yml/badge.svg) ![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter) ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi) ![License](https://img.shields.io/badge/license-MIT-green)
 
 Community early-response platform (**Commencys**): one-tap SOS with GPS,
 incident reporting, geospatial alerts, WebSocket coordination, and an OSM map
@@ -11,15 +11,13 @@ OSRM ETAs.
 > Community early-response aid — **not** a substitute for official emergency
 > services (112 / SPGDT 119).
 
-RPL course — DTE UI, Gasal 2026/2027.
+## Contributors
 
-## Team
-
-| Name | NIM | Role |
-|------|-----|------|
-| Reinathan Ezkhiel Kurniawan | 2406397675 | Mobile / SOS flow |
-| Alwahib Raffi Raihan | 2406397630 | Map & geolocation |
-| Joshua Ricardo Riangkamang | 2406361946 | Backend client & alerts |
+| Name | Focus |
+|------|-------|
+| Reinathan Ezkhiel Kurniawan | Mobile / SOS flow |
+| Alwahib Raffi Raihan | Map & geolocation |
+| Joshua Ricardo Riangkamang | Backend client & alerts |
 
 ## Layout
 
@@ -28,11 +26,12 @@ lib/
   main.dart                 # MaterialApp + named routes
   models/incident.dart      # Canonical ticket (urgency P1–P4, lifecycle incl. broadcast)
   services/
-    api_client.dart         # FastAPI HTTP client (incidents + SOS + dispatch)
+    api_client.dart         # FastAPI HTTP client (incidents + SOS + dispatch, 10 s timeout)
+    app_config.dart         # backend base URL (env default, in-app server setting, WS mapping)
     location_service.dart   # geolocator permission + stream + accuracy
     websocket_service.dart  # live channel w/ auto-reconnect + status parsing
   screens/
-    home_screen.dart        # dashboard + big SOS entry
+    home_screen.dart        # dashboard + big SOS entry + backend server setting
     sos_screen.dart         # one-tap SOS + StatusTimeline + 112/119 disclaimer
     report_screen.dart      # incident report form (spec taxonomy)
     map_screen.dart         # flutter_map (OSM) incident pins
@@ -65,8 +64,22 @@ flutter pub get
 flutter analyze
 flutter test
 flutter run
-# Backend expected at http://10.0.2.2:8000 (Android emulator -> host)
+# Backend address: emulator default http://10.0.2.2:8000 (host loopback).
+# Phone on the same Wi-Fi/LAN: run the backend with
+#   uvicorn app.main:app --host 0.0.0.0 --port 8000
+# then tap the server icon in the app bar and enter e.g.
+#   http://192.168.1.10:8000
+# (or bake it in: flutter build apk --release --dart-define=API_BASE=<url>)
 ```
+
+## Install on a phone
+
+1. Grab the latest release APK from CI (`app-release` artifact) or the
+   versioned copy in `docs/05-deployment.md`.
+2. Install it (Android allows direct APK install after a one-time
+   "unknown apps" confirmation).
+3. Start the backend on the same network, set the server URL in-app
+   (server icon, top right), then send a test SOS.
 
 ## Backend contract
 
@@ -79,7 +92,9 @@ flutter run
 
 Full contract: [`docs/api-contract.md`](docs/api-contract.md).
 
-## Docs (SDLC + spec)
+## Docs
+
+Start at [`docs/README.md`](docs/README.md) (contents + architecture), then:
 
 Planning → [`docs/00-planning.md`](docs/00-planning.md) ·
 Analysis + gap map → [`docs/01-analysis.md`](docs/01-analysis.md) ·
@@ -90,8 +105,23 @@ DB schema → [`docs/db-schema.md`](docs/db-schema.md) ·
 Eval → [`docs/evaluation-monitoring.md`](docs/evaluation-monitoring.md) ·
 Guardrails → [`docs/guardrails.md`](docs/guardrails.md).
 
+## Architecture
+
+![Architecture](docs/architecture.png)
+
+```mermaid
+flowchart LR
+    W["Resident SOS + GPS"] --> API["FastAPI: REST + WS gateway"]
+    API --> DB[("PostgreSQL/PostGIS")]
+    API --> AI["IndoBERT triage + DBSCAN dedup (async)"]
+    AI --> DB
+    API --> OSRM["OSRM ETA"]
+    API --> V["Volunteers + coordinator (live WS)"]
+```
+
 ## CI
 
 GitHub Actions ([`ci.yml`](.github/workflows/ci.yml)): backend job
 (`pip install` → `pytest`) + Flutter job
-(`pub get` → `analyze` → `test` → `build apk --release`).
+(`pub get` → `analyze` → `test` → `build apk --release`),
+publishing the release APK as the `app-release` artifact.

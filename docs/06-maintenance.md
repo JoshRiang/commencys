@@ -1,4 +1,4 @@
-# 06 — Maintenance (Pemeliharaan) + SOPs
+# 06 — Maintenance + SOPs
 
 ## SOP-1 · Coordinator triage (daily during pilot)
 

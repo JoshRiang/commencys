@@ -1,4 +1,4 @@
-# 03 — Implementation (Implementasi)
+# 03 — Implementation
 
 ## What was built (this update)
 

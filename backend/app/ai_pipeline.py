@@ -1,6 +1,6 @@
 """Async AI pipeline stubs — IndoBERT classification + DBSCAN clustering.
 
-SPEC CONSTRAINT (Individual Assignment, criterion 4): AI must NEVER block the
+CONSTRAINT (acceptance criterion 4): AI must NEVER block the
 SOS hot path. Storage + initial broadcast happen synchronously (<5 s); these
 coroutines run as FastAPI BackgroundTasks and only enrich metadata columns
 (ai_category, ai_confidence, needs_review, cluster_id). Raw report fields are

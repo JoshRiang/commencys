@@ -1,13 +1,12 @@
-# 00 — Planning (Perencanaan)
+# 00 — Planning
 
-**Project:** Commencys — Platform Respons Darurat Dini Berbasis Komunitas
-**Course:** RPL DTE UI, Gasal 2026/2027 · **Repo:** `JoshRiang/emergency-community-response-911`
+**Project:** Commencys — Community Emergency Response Platform · **Repo:** `JoshRiang/commencys`
 
-| Name | NIM | Role |
-|------|-----|------|
-| Reinathan Ezkhiel Kurniawan | 2406397675 | Mobile / SOS flow |
-| Alwahib Raffi Raihan | 2406397630 | Map & geolocation |
-| Joshua Ricardo Riangkamang | 2406361946 | Backend client & alerts |
+| Name | Focus |
+|------|-------|
+| Reinathan Ezkhiel Kurniawan | Mobile / SOS flow |
+| Alwahib Raffi Raihan | Map & geolocation |
+| Joshua Ricardo Riangkamang | Backend client & alerts |
 
 ## Problem statement
 

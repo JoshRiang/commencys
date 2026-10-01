@@ -1,4 +1,4 @@
-# Three Key Technical Decisions + Trade-offs (spec Tabel 1)
+# Key Technical Decisions + Trade-offs
 
 ## D1 — IndoBERT for report classification
 
