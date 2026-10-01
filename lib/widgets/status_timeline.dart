@@ -27,9 +27,9 @@ class StatusTimeline extends StatelessWidget {
   Widget build(BuildContext context) {
     final current = _current;
     return Column(
-      children [
+      children: [
         Row(
-          children [
+          children: [
             for (var i = 0; i < _steps.length; i++) ...[
               _Dot(done: i <= current, active: i == current),
               if (i < _steps.length - 1)
