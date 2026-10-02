@@ -1,7 +1,7 @@
 # Commencys docs site — built by GitHub Pages (Actions deploy, see .github/workflows/pages.yml)
 title: Commencys
 description: Community Emergency Response Platform — one-tap SOS with GPS, incident reporting, geospatial alerts, and WebSocket coordination.
-url: https://joschriang.github.io
+url: https://joshriang.github.io
 baseurl: /commencys
 
 theme: jekyll-theme-cayman
