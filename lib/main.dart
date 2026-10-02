@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import 'screens/home_screen.dart';
-import 'screens/sos_screen.dart';
-import 'screens/report_screen.dart';
-import 'screens/map_screen.dart';
+
 import 'screens/alerts_screen.dart';
+import 'screens/home_screen.dart';
+import 'screens/map_screen.dart';
+import 'screens/report_screen.dart';
+import 'screens/sos_screen.dart';
+import 'theme/app_theme.dart';
 
 void main() {
   runApp(const CommencysApp());
@@ -17,13 +19,7 @@ class CommencysApp extends StatelessWidget {
     return MaterialApp(
       title: 'Commencys',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.red,
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.light(),
       initialRoute: '/',
       routes: {
         '/': (context) => const HomeScreen(),

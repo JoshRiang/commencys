@@ -5,6 +5,8 @@ import 'package:latlong2/latlong.dart';
 import '../models/incident.dart';
 import '../services/api_client.dart';
 import '../services/location_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/glass.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -51,28 +53,74 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
-  Color _severityColor(IncidentSeverity s) {
-    switch (s) {
-      case IncidentSeverity.critical:
-        return Colors.red;
-      case IncidentSeverity.high:
-        return Colors.orange;
-      case IncidentSeverity.medium:
-        return Colors.amber.shade700;
-      case IncidentSeverity.low:
-        return Colors.green;
-    }
+  void _showIncident(Incident i) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        child: GlassCard(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      i.title,
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                  Pill(
+                    label: i.severity.name.toUpperCase(),
+                    bg: AppColors.severitySoftFor(i.severity.name),
+                    fg: AppColors.severityFor(i.severity.name),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '${i.category} • ${i.status.name}',
+                style: const TextStyle(
+                    color: AppColors.secondary, fontSize: 13),
+              ),
+              if (i.description.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(i.description,
+                    style: const TextStyle(fontSize: 14, height: 1.4)),
+              ],
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close, size: 18),
+                  label: const Text('Close'),
+                  style: OutlinedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Live Incident Map'),
-        backgroundColor: Colors.red.shade700,
-        foregroundColor: Colors.white,
+        title: const Text('Live map'),
         actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _load),
+          IconButton(
+              icon: const Icon(Icons.refresh_rounded),
+              onPressed: _load),
         ],
       ),
       body: Stack(
@@ -94,12 +142,35 @@ class _MapScreenState extends State<MapScreen> {
                     .map(
                       (i) => Marker(
                         point: LatLng(i.latitude, i.longitude),
-                        width: 40,
-                        height: 40,
-                        child: Icon(
-                          Icons.location_pin,
-                          color: _severityColor(i.severity),
-                          size: 36,
+                        width: 44,
+                        height: 44,
+                        child: GestureDetector(
+                          onTap: () => _showIncident(i),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: AppColors.severitySoftFor(
+                                  i.severity.name),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: AppColors.severityFor(
+                                    i.severity.name),
+                                width: 2,
+                              ),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color(0x22000000),
+                                  blurRadius: 8,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              Icons.location_pin,
+                              color: AppColors.severityFor(
+                                  i.severity.name),
+                              size: 24,
+                            ),
+                          ),
                         ),
                       ),
                     )
@@ -114,22 +185,66 @@ class _MapScreenState extends State<MapScreen> {
               right: 0,
               child: Center(child: CircularProgressIndicator()),
             ),
-          if (!_loading && _incidents.isEmpty)
+          if (!_loading)
             Positioned(
-              bottom: 16,
+              top: 12,
               left: 16,
               right: 16,
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Text(
-                    'No active incidents. Backend: ${_api.baseUrl}',
-                    textAlign: TextAlign.center,
-                  ),
+              child: GlassCard(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 10),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: AppColors.success,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _incidents.isEmpty
+                            ? 'All clear near you'
+                            : '${_incidents.length} active incident${_incidents.length == 1 ? '' : 's'} near you',
+                        style: const TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    if (_incidents.isNotEmpty)
+                      Pill(
+                        label:
+                            '${_incidents.where((e) => e.severity == IncidentSeverity.critical || e.severity == IncidentSeverity.high).length} urgent',
+                        bg: AppColors.accentSoft,
+                        fg: AppColors.accentDeep,
+                      ),
+                  ],
                 ),
               ),
             ),
+          if (!_loading && _incidents.isEmpty)
+            const Positioned(
+              bottom: 24,
+              left: 16,
+              right: 16,
+              child: EmptyState(
+                icon: Icons.map_outlined,
+                title: 'Nothing to show yet',
+                hint: 'Incidents nearby will appear as pins here.',
+              ),
+            ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => Navigator.pushNamed(context, '/report'),
+        backgroundColor: AppColors.accent,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Report',
+            style: TextStyle(fontWeight: FontWeight.w700)),
       ),
     );
   }

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../services/api_client.dart';
 import '../services/location_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/glass.dart';
 
 class ReportScreen extends StatefulWidget {
   const ReportScreen({super.key});
@@ -21,15 +23,15 @@ class _ReportScreenState extends State<ReportScreen> {
   String _severity = 'medium';
   bool _sending = false;
 
-  final List<String> _categories = [
-    'medical',
-    'accident',
-    'fire',
-    'security',
-    'facility',
-    'other',
+  static const _categories = [
+    ('medical', Icons.medical_services_rounded),
+    ('accident', Icons.car_crash_rounded),
+    ('fire', Icons.local_fire_department_rounded),
+    ('security', Icons.shield_outlined),
+    ('facility', Icons.business_rounded),
+    ('other', Icons.more_horiz_rounded),
   ];
-  final List<String> _severities = ['low', 'medium', 'high', 'critical'];
+  static const _severities = ['low', 'medium', 'high', 'critical'];
 
   @override
   void dispose() {
@@ -58,7 +60,7 @@ class _ReportScreenState extends State<ReportScreen> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Incident reported successfully')),
+        const SnackBar(content: Text('Report sent — thank you.')),
       );
       Navigator.pop(context);
     } catch (e) {
@@ -74,66 +76,126 @@ class _ReportScreenState extends State<ReportScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Report Incident'),
-        backgroundColor: Colors.red.shade700,
-        foregroundColor: Colors.white,
-      ),
+      appBar: AppBar(title: const Text('Report')),
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
           children: [
-            TextFormField(
-              controller: _titleCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Title',
-                border: OutlineInputBorder(),
+            const SectionHeader(title: 'What happened?'),
+            GlassCard(
+              child: Column(
+                children: [
+                  TextFormField(
+                    controller: _titleCtrl,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(
+                      labelText: 'Title',
+                      hintText: 'e.g. Fire on the 2nd floor',
+                      prefixIcon: Icon(Icons.title_rounded, size: 20),
+                    ),
+                    validator: (v) =>
+                        (v == null || v.trim().isEmpty) ? 'Required' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _descCtrl,
+                    maxLines: 4,
+                    decoration: const InputDecoration(
+                      labelText: 'Description',
+                      hintText: 'What do you see? Where exactly?',
+                      alignLabelWithHint: true,
+                    ),
+                    validator: (v) =>
+                        (v == null || v.trim().isEmpty) ? 'Required' : null,
+                  ),
+                ],
               ),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Required' : null,
             ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _descCtrl,
-              maxLines: 4,
-              decoration: const InputDecoration(
-                labelText: 'Description',
-                border: OutlineInputBorder(),
+            const SizedBox(height: 16),
+            const SectionHeader(title: 'Category'),
+            GlassCard(
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final (value, icon) in _categories)
+                    ChoiceChip(
+                      label: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(icon, size: 15),
+                          const SizedBox(width: 6),
+                          Text(value),
+                        ],
+                      ),
+                      selected: _category == value,
+                      onSelected: (_) =>
+                          setState(() => _category = value),
+                      selectedColor: AppColors.accentSoft,
+                      labelStyle: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: _category == value
+                            ? AppColors.accentDeep
+                            : AppColors.secondary,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(
+                          color: _category == value
+                              ? AppColors.accent
+                              : Colors.black.withValues(alpha: 0.08),
+                        ),
+                      ),
+                      showCheckmark: false,
+                    ),
+                ],
               ),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Required' : null,
             ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              initialValue: _category,
-              decoration: const InputDecoration(
-                labelText: 'Category',
-                border: OutlineInputBorder(),
+            const SizedBox(height: 16),
+            const SectionHeader(title: 'How urgent?'),
+            GlassCard(
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final s in _severities)
+                    ChoiceChip(
+                      label: Text(s.toUpperCase()),
+                      selected: _severity == s,
+                      onSelected: (_) =>
+                          setState(() => _severity = s),
+                      selectedColor: AppColors.severitySoftFor(s),
+                      labelStyle: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12,
+                        color: _severity == s
+                            ? AppColors.severityFor(s)
+                            : AppColors.secondary,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(999),
+                        side: BorderSide(
+                          color: _severity == s
+                              ? AppColors.severityFor(s)
+                              : Colors.black.withValues(alpha: 0.08),
+                        ),
+                      ),
+                      showCheckmark: false,
+                    ),
+                ],
               ),
-              items: _categories
-                  .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                  .toList(),
-              onChanged: (v) => setState(() => _category = v ?? 'medical'),
             ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              initialValue: _severity,
-              decoration: const InputDecoration(
-                labelText: 'Severity',
-                border: OutlineInputBorder(),
-              ),
-              items: _severities
-                  .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                  .toList(),
-              onChanged: (v) => setState(() => _severity = v ?? 'medium'),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _nameCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Your name (optional)',
-                border: OutlineInputBorder(),
+            const SizedBox(height: 16),
+            const SectionHeader(title: 'Your details'),
+            GlassCard(
+              child: TextFormField(
+                controller: _nameCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Your name (optional)',
+                  hintText: 'Anonymous is fine',
+                  prefixIcon: Icon(Icons.person_outline, size: 20),
+                ),
               ),
             ),
             const SizedBox(height: 20),
@@ -143,14 +205,18 @@ class _ReportScreenState extends State<ReportScreen> {
                   ? const SizedBox(
                       width: 18,
                       height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
                     )
-                  : const Icon(Icons.send),
-              label: Text(_sending ? 'Sending...' : 'Submit Report'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red.shade700,
-                foregroundColor: Colors.white,
-                minimumSize: const Size.fromHeight(52),
+                  : const Icon(Icons.send_rounded, size: 19),
+              label: Text(_sending ? 'Sending...' : 'Submit report'),
+            ),
+            const SizedBox(height: 10),
+            const Center(
+              child: Text(
+                'Your GPS is attached automatically.',
+                style:
+                    TextStyle(color: AppColors.secondary, fontSize: 12),
               ),
             ),
           ],

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../models/incident.dart';
 import '../services/api_client.dart';
 import '../services/location_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/glass.dart';
 import '../widgets/status_timeline.dart';
 
 /// One-tap SOS (spec criterion 1): GPS auto-attach (+accuracy radius),
@@ -62,74 +64,207 @@ class _SosScreenState extends State<SosScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final ticket = _ticket;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('One-Tap SOS'),
-        backgroundColor: Colors.red.shade700,
-        foregroundColor: Colors.white,
+        title: const Text('SOS'),
+        backgroundColor: Colors.transparent,
+        foregroundColor: AppColors.ink,
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              GestureDetector(
-                onLongPress: _sending ? null : _sendSos,
-                onTap: _sending ? null : _sendSos,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: 220,
-                  height: 220,
-                  decoration: BoxDecoration(
-                    color: _sending ? Colors.grey : Colors.red,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.red.withValues(alpha: 0.5),
-                        blurRadius: 30,
-                        spreadRadius: 5,
-                      ),
-                    ],
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+        child: Column(
+          children: [
+            const Pill(
+              label: 'FAIL-SAFE P1 UNTIL TRIAGE',
+              bg: AppColors.accentSoft,
+              fg: AppColors.accentDeep,
+              icon: Icons.shield_outlined,
+            ),
+            const SizedBox(height: 16),
+            GestureDetector(
+              onLongPress: _sending ? null : _sendSos,
+              onTap: _sending ? null : _sendSos,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 216,
+                height: 216,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: _sending
+                        ? [Colors.grey.shade400, Colors.grey.shade500]
+                        : const [AppColors.sosStart, AppColors.sosEnd],
                   ),
-                  alignment: Alignment.center,
-                  child: _sending
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                          'SOS',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 64,
-                            fontWeight: FontWeight.w900,
+                  boxShadow: [
+                    BoxShadow(
+                      color: (_sending ? Colors.grey : AppColors.accent)
+                          .withValues(alpha: 0.45),
+                      blurRadius: 36,
+                      spreadRadius: 4,
+                      offset: const Offset(0, 12),
+                    ),
+                  ],
+                ),
+                alignment: Alignment.center,
+                child: _sending
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'SOS',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 60,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 1,
+                            ),
+                          ),
+                          Text(
+                            'TAP TO SEND',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 2,
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _status,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (ticket != null) ...[
+              const SizedBox(height: 16),
+              GlassCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Ticket ${ticket.id}',
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
+                        Pill(
+                          label:
+                              'URG ${ticket.urgency.name.toUpperCase()}',
+                          bg: AppColors.accentSoft,
+                          fg: AppColors.accentDeep,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Triage pending — volunteers nearby will be notified.',
+                      style: TextStyle(
+                        color: AppColors.secondary,
+                        fontSize: 13,
+                      ),
+                    ),
+                    if (ticket.accuracyM != null) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.my_location,
+                            size: 14,
+                            color: AppColors.secondary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'GPS ±${ticket.accuracyM!.toStringAsFixed(0)} m · '
+                            '${ticket.latitude.toStringAsFixed(5)}, '
+                            '${ticket.longitude.toStringAsFixed(5)}',
+                            style: const TextStyle(
+                              color: AppColors.secondary,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 14),
+                    StatusTimeline(status: ticket.status),
+                  ],
                 ),
               ),
-              const SizedBox(height: 24),
-              Text(
-                _status,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 16),
-              ),
-              if (_ticket != null) ...[
-                const SizedBox(height: 16),
-                StatusTimeline(status: _ticket!.status),
-                const SizedBox(height: 8),
-                Text(
-                  'Urgency ${(_ticket!.urgency.name).toUpperCase()} '
-                  '(triage pending)',
-                  style: const TextStyle(color: Colors.grey),
-                ),
-              ],
-              const SizedBox(height: 16),
-              const Text(
-                'Community early-response aid — not a substitute for '
-                'emergency services 112 / 119.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () =>
+                          Navigator.pushNamed(context, '/map'),
+                      icon: const Icon(Icons.map_outlined, size: 18),
+                      label: const Text('View map'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(48),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () =>
+                          Navigator.pushNamed(context, '/alerts'),
+                      icon: const Icon(
+                          Icons.notifications_outlined,
+                          size: 18),
+                      label: const Text('View alerts'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(48),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
-          ),
+            const SizedBox(height: 16),
+            const GlassCard(
+              padding:
+                  EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline,
+                      color: AppColors.secondary, size: 20),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Community early-response aid — not a substitute for emergency services 112 / 119.',
+                      style: TextStyle(
+                        color: AppColors.secondary,
+                        fontSize: 12.5,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

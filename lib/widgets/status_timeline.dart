@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/incident.dart';
+import '../theme/app_theme.dart';
 
 /// Transparent ticket-lifecycle stepper (spec criterion 3):
 /// acknowledged ≠ dispatched. Each stage renders distinctly so a reporter
@@ -11,10 +12,17 @@ class StatusTimeline extends StatelessWidget {
   const StatusTimeline({super.key, required this.status});
 
   static const _steps = [
-    (IncidentStatus.acknowledged, 'Received', 'Laporan diterima sistem'),
-    (IncidentStatus.broadcast, 'Broadcast', 'Relawan diberi tahu'),
-    (IncidentStatus.dispatched, 'Dispatched', 'Relawan mengambil tugas'),
-    (IncidentStatus.resolved, 'Resolved', 'Selesai'),
+    (IncidentStatus.acknowledged, 'Received', 'Report saved by the system'),
+    (IncidentStatus.broadcast, 'Shared', 'Nearby volunteers notified'),
+    (IncidentStatus.dispatched, 'Help on the way', 'A volunteer took the job'),
+    (IncidentStatus.resolved, 'Resolved', 'Done'),
+  ];
+
+  static const _icons = [
+    Icons.inbox_rounded,
+    Icons.campaign_outlined,
+    Icons.directions_run_rounded,
+    Icons.check_circle_rounded,
   ];
 
   int get _current {
@@ -31,27 +39,46 @@ class StatusTimeline extends StatelessWidget {
         Row(
           children: [
             for (var i = 0; i < _steps.length; i++) ...[
-              _Dot(done: i <= current, active: i == current),
+              _Dot(done: i <= current, active: i == current, icon: _icons[i]),
               if (i < _steps.length - 1)
                 Expanded(
                   child: Container(
                     height: 3,
-                    color: i < current ? Colors.green : Colors.grey.shade300,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(2),
+                      color: i < current
+                          ? AppColors.success
+                          : Colors.black.withValues(alpha: 0.08),
+                    ),
                   ),
                 ),
             ],
           ],
         ),
-        const SizedBox(height: 8),
-        Text(
-          current < 0
-              ? 'Sending…'
-              : '${_steps[current].$2} — ${_steps[current].$3}',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: current >= 2 ? Colors.green.shade800 : Colors.red.shade800,
+        const SizedBox(height: 10),
+        Container(
+          width: double.infinity,
+          padding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: current >= 2
+                ? AppColors.successSoft
+                : AppColors.accentSoft,
+            borderRadius: BorderRadius.circular(12),
           ),
-          textAlign: TextAlign.center,
+          child: Text(
+            current < 0
+                ? 'Sending…'
+                : '${_steps[current].$2} — ${_steps[current].$3}',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 13,
+              color: current >= 2
+                  ? AppColors.success
+                  : AppColors.accentDeep,
+            ),
+            textAlign: TextAlign.center,
+          ),
         ),
       ],
     );
@@ -61,20 +88,39 @@ class StatusTimeline extends StatelessWidget {
 class _Dot extends StatelessWidget {
   final bool done;
   final bool active;
+  final IconData icon;
 
-  const _Dot({required this.done, required this.active});
+  const _Dot({required this.done, required this.active, required this.icon});
 
   @override
   Widget build(BuildContext context) {
+    final size = active ? 34.0 : 28.0;
     return Container(
-      width: active ? 22 : 16,
-      height: active ? 22 : 16,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
-        color: done ? Colors.green : Colors.grey.shade300,
+        color: done ? AppColors.success : Colors.white,
         shape: BoxShape.circle,
-        border: active
-            ? Border.all(color: Colors.green.shade900, width: 2)
+        border: Border.all(
+          color: done
+              ? AppColors.success
+              : Colors.black.withValues(alpha: 0.12),
+          width: active ? 2.5 : 1.5,
+        ),
+        boxShadow: active
+            ? [
+                BoxShadow(
+                  color: AppColors.success.withValues(alpha: 0.35),
+                  blurRadius: 10,
+                  spreadRadius: 1,
+                ),
+              ]
             : null,
+      ),
+      child: Icon(
+        done ? icon : Icons.circle_outlined,
+        size: 15,
+        color: done ? Colors.white : AppColors.tertiary,
       ),
     );
   }
