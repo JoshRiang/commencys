@@ -1,0 +1,21 @@
+# Commencys docs site — built by GitHub Pages (Actions deploy, see .github/workflows/pages.yml)
+title: Commencys
+description: Community Emergency Response Platform — one-tap SOS with GPS, incident reporting, geospatial alerts, and WebSocket coordination.
+url: https://joschriang.github.io
+baseurl: /commencys
+
+theme: jekyll-theme-cayman
+show_downloads: false
+
+markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+
+plugins:
+  - jekyll-readme-index        # README.md files become directory indexes (repo root + docs/)
+  - jekyll-relative-links      # rewrite inter-page .md links to site permalinks
+  - jekyll-default-layout      # give layout-less pages the theme default layout
+  - jekyll-titles-from-headings # <title> from first heading when no front matter
+  - jekyll-optional-front-matter # render .md files even without front matter
+  - jekyll-github-metadata

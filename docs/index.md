@@ -1,10 +1,11 @@
 ---
 layout: default
-title: Home
+title: Commencys Documentation
+description: Community Emergency Response Platform — docs home, architecture, API, and SDLC set.
 nav_order: 1
 ---
 
-# Commencys Docs
+# Commencys — Community Emergency Response Platform
 
 ![CI](https://github.com/JoshRiang/commencys/actions/workflows/ci.yml/badge.svg)
 ![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter)
