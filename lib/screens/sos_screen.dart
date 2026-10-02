@@ -7,9 +7,10 @@ import '../theme/app_theme.dart';
 import '../widgets/glass.dart';
 import '../widgets/status_timeline.dart';
 
-/// One-tap SOS (spec criterion 1): GPS auto-attach (+accuracy radius),
-/// stored+acked by the backend in < 5 s, with transparent ticket status
-/// (criterion 3: acknowledged ≠ dispatched).
+/// One-tap SOS: GPS auto-attach (+accuracy radius), stored+acked by the
+/// backend in < 5 s, with transparent ticket status (acknowledged ≠
+/// dispatched). The red gradient hero keeps its identity inside a
+/// Liquid Glass surround. API unchanged: [ApiClient.sendSos].
 class SosScreen extends StatefulWidget {
   const SosScreen({super.key});
 
@@ -43,8 +44,7 @@ class _SosScreenState extends State<SosScreen> {
         return;
       }
       setState(() => _status = 'Sending SOS...');
-      // GPS + accuracy radius (spec station 1); manual pin adjustment is a
-      // tracked TODO on the map screen (docs/03-implementation.md).
+      // GPS + accuracy radius; the live pin is visible on the map tab.
       final ticket = await _api.sendSos(
         latitude: pos.latitude,
         longitude: pos.longitude,
@@ -82,67 +82,93 @@ class _SosScreenState extends State<SosScreen> {
               icon: Icons.shield_outlined,
             ),
             const SizedBox(height: 16),
-            GestureDetector(
-              onLongPress: _sending ? null : _sendSos,
-              onTap: _sending ? null : _sendSos,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: 216,
-                height: 216,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: _sending
-                        ? [Colors.grey.shade400, Colors.grey.shade500]
-                        : const [AppColors.sosStart, AppColors.sosEnd],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: (_sending ? Colors.grey : AppColors.accent)
-                          .withValues(alpha: 0.45),
-                      blurRadius: 36,
-                      spreadRadius: 4,
-                      offset: const Offset(0, 12),
-                    ),
-                  ],
-                ),
-                alignment: Alignment.center,
-                child: _sending
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'SOS',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 60,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 1,
-                            ),
-                          ),
-                          Text(
-                            'TAP TO SEND',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 2,
-                            ),
+            LiquidGlass(
+              radius: 28,
+              blur: 28,
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Column(
+                children: [
+                  GestureDetector(
+                    onLongPress: _sending ? null : _sendSos,
+                    onTap: _sending ? null : _sendSos,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: 216,
+                      height: 216,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: _sending
+                              ? [
+                                  Colors.grey.shade400,
+                                  Colors.grey.shade500
+                                ]
+                              : const [
+                                  AppColors.sosStart,
+                                  AppColors.sosEnd
+                                ],
+                        ),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.6),
+                          width: 3,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: (_sending
+                                    ? Colors.grey
+                                    : AppColors.accent)
+                                .withValues(alpha: 0.45),
+                            blurRadius: 36,
+                            spreadRadius: 4,
+                            offset: const Offset(0, 12),
                           ),
                         ],
                       ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              _status,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
+                      alignment: Alignment.center,
+                      child: _sending
+                          ? const CircularProgressIndicator(
+                              color: Colors.white)
+                          : const Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'SOS',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 60,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1,
+                                  ),
+                                ),
+                                Text(
+                                  'TAP TO SEND',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: 2,
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 20),
+                    child: Text(
+                      _status,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             if (ticket != null) ...[

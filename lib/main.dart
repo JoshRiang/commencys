@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'screens/alerts_screen.dart';
-import 'screens/home_screen.dart';
-import 'screens/map_screen.dart';
-import 'screens/report_screen.dart';
-import 'screens/sos_screen.dart';
+import 'app_shell.dart';
 import 'theme/app_theme.dart';
 
 void main() {
@@ -20,13 +16,13 @@ class CommencysApp extends StatelessWidget {
       title: 'Commencys',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
-      initialRoute: '/',
+      // Map-centric shell: the live map is the default home (center tab).
+      home: const AppShell(),
       routes: {
-        '/': (context) => const HomeScreen(),
-        '/sos': (context) => const SosScreen(),
-        '/report': (context) => const ReportScreen(),
-        '/map': (context) => const MapScreen(),
-        '/alerts': (context) => const AlertsScreen(),
+        '/sos': (context) => const AppShell(initialTab: 4),
+        '/report': (context) => const AppShell(initialTab: 1),
+        '/map': (context) => const AppShell(initialTab: 2),
+        '/alerts': (context) => const AppShell(initialTab: 3),
       },
     );
   }

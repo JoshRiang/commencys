@@ -5,8 +5,12 @@ import '../services/location_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass.dart';
 
+/// Report as a glass stepped form: 1 What → 2 Category → 3 Urgency →
+/// 4 Details. API unchanged: [ApiClient.createIncident].
 class ReportScreen extends StatefulWidget {
-  const ReportScreen({super.key});
+  final VoidCallback? onSubmitted;
+
+  const ReportScreen({super.key, this.onSubmitted});
 
   @override
   State<ReportScreen> createState() => _ReportScreenState();
@@ -33,6 +37,8 @@ class _ReportScreenState extends State<ReportScreen> {
   ];
   static const _severities = ['low', 'medium', 'high', 'critical'];
 
+  static const _steps = ['What', 'Category', 'Urgency', 'Details'];
+
   @override
   void dispose() {
     _api.dispose();
@@ -40,6 +46,16 @@ class _ReportScreenState extends State<ReportScreen> {
     _descCtrl.dispose();
     _nameCtrl.dispose();
     super.dispose();
+  }
+
+  int get _currentStep {
+    if (_titleCtrl.text.trim().isEmpty ||
+        _descCtrl.text.trim().isEmpty) {
+      return 0;
+    }
+    // Category and urgency always have a selection; reaching details
+    // means steps 1–2 are effectively complete.
+    return 3;
   }
 
   Future<void> _submit() async {
@@ -62,7 +78,12 @@ class _ReportScreenState extends State<ReportScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Report sent — thank you.')),
       );
-      Navigator.pop(context);
+      final cb = widget.onSubmitted;
+      if (cb != null) {
+        cb();
+      } else {
+        Navigator.pop(context);
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -75,14 +96,49 @@ class _ReportScreenState extends State<ReportScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final step = _currentStep;
     return Scaffold(
       appBar: AppBar(title: const Text('Report')),
       body: Form(
         key: _formKey,
+        onChanged: () => setState(() {}),
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
           children: [
-            const SectionHeader(title: 'What happened?'),
+            LiquidGlass(
+              radius: 22,
+              blur: 24,
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  for (var i = 0; i < _steps.length; i++) ...[
+                    _StepDot(
+                        done: i < step,
+                        active: i == step,
+                        label: _steps[i]),
+                    if (i < _steps.length - 1)
+                      Expanded(
+                        child: Container(
+                          height: 3,
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 4),
+                          decoration: BoxDecoration(
+                            borderRadius:
+                                BorderRadius.circular(2),
+                            color: i < step
+                                ? AppColors.success
+                                : Colors.black.withValues(
+                                    alpha: 0.08),
+                          ),
+                        ),
+                      ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            const SectionHeader(title: '1 · What happened?'),
             GlassCard(
               child: Column(
                 children: [
@@ -113,7 +169,7 @@ class _ReportScreenState extends State<ReportScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            const SectionHeader(title: 'Category'),
+            const SectionHeader(title: '2 · Category'),
             GlassCard(
               child: Wrap(
                 spacing: 8,
@@ -153,7 +209,7 @@ class _ReportScreenState extends State<ReportScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            const SectionHeader(title: 'How urgent?'),
+            const SectionHeader(title: '3 · How urgent?'),
             GlassCard(
               child: Wrap(
                 spacing: 8,
@@ -187,7 +243,7 @@ class _ReportScreenState extends State<ReportScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            const SectionHeader(title: 'Your details'),
+            const SectionHeader(title: '4 · Your details'),
             GlassCard(
               child: TextFormField(
                 controller: _nameCtrl,
@@ -222,6 +278,68 @@ class _ReportScreenState extends State<ReportScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _StepDot extends StatelessWidget {
+  final bool done;
+  final bool active;
+  final String label;
+
+  const _StepDot({
+    required this.done,
+    required this.active,
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = done || active
+        ? AppColors.accent
+        : AppColors.tertiary;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: active ? 26 : 22,
+          height: active ? 26 : 22,
+          decoration: BoxDecoration(
+            color: done || active
+                ? AppColors.accent
+                : Colors.white,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: done || active
+                  ? AppColors.accent
+                  : Colors.black.withValues(alpha: 0.12),
+              width: 1.5,
+            ),
+          ),
+          child: done
+              ? const Icon(Icons.check_rounded,
+                  size: 14, color: Colors.white)
+              : active
+                  ? Container(
+                      margin: const EdgeInsets.all(7),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                    )
+                  : null,
+        ),
+        const SizedBox(height: 3),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight:
+                active ? FontWeight.w800 : FontWeight.w600,
+            color: color,
+          ),
+        ),
+      ],
     );
   }
 }

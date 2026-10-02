@@ -4,7 +4,96 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 
-/// Glass card with backdrop blur — the Liquid Glass building block.
+/// Apple Liquid Glass (iOS 26) — the single material language of the app.
+///
+/// Stronger backdrop blur (sigma 24–30), a luminous tint, a specular top
+/// highlight and a 22–28 pt radius. Every surface (cards, pills, sheets,
+/// tab bar) builds on [LiquidGlass] so the UI reads as one continuous
+/// sheet of glass floating over the live map.
+class LiquidGlass extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+  final double radius;
+  final double blur;
+  final double tint;
+  final bool highlight;
+  final VoidCallback? onTap;
+
+  const LiquidGlass({
+    super.key,
+    required this.child,
+    this.padding = const EdgeInsets.all(16),
+    this.radius = 24,
+    this.blur = 26,
+    this.tint = 1.0,
+    this.highlight = true,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final card = ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+        child: Container(
+          padding: padding,
+          foregroundDecoration: highlight
+              ? BoxDecoration(
+                  borderRadius: BorderRadius.circular(radius),
+                  gradient: const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color(0x59FFFFFF),
+                      Color(0x14FFFFFF),
+                      Color(0x00000000),
+                    ],
+                    stops: [0.0, 0.28, 0.55],
+                  ),
+                )
+              : null,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color.fromRGBO(255, 255, 255, 0.80 * tint),
+                Color.fromRGBO(255, 255, 255, 0.55 * tint),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(radius),
+            border: Border.all(
+              color: const Color(0xA6FFFFFF),
+              width: 1.2,
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x1A000000),
+                blurRadius: 28,
+                offset: Offset(0, 10),
+              ),
+              BoxShadow(
+                color: Color(0x0A000000),
+                blurRadius: 6,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: child,
+        ),
+      ),
+    );
+    if (onTap == null) return card;
+    return InkWell(
+      borderRadius: BorderRadius.circular(radius),
+      onTap: onTap,
+      child: card,
+    );
+  }
+}
+
+/// Backwards-compatible glass card — now a [LiquidGlass] under the hood.
 class GlassCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
@@ -19,38 +108,47 @@ class GlassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final card = ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-        child: Container(
-          padding: padding,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xE6FFFFFF), Color(0xB8FFFFFF)],
-            ),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0x33FFFFFF)),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x14000000),
-                blurRadius: 24,
-                offset: Offset(0, 8),
-              ),
-            ],
-          ),
-          child: child,
-        ),
+    return LiquidGlass(
+      padding: padding,
+      onTap: onTap,
+      child: child,
+    );
+  }
+}
+
+/// Round glass icon button for map overlays and headers.
+class GlassIconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onPressed;
+  final Color color;
+  final double size;
+  final String? tooltip;
+
+  const GlassIconButton({
+    super.key,
+    required this.icon,
+    required this.onPressed,
+    this.color = AppColors.secondary,
+    this.size = 46,
+    this.tooltip,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final button = LiquidGlass(
+      radius: size / 2,
+      blur: 24,
+      padding: EdgeInsets.zero,
+      onTap: onPressed,
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: Icon(icon, color: color, size: 21),
       ),
     );
-    if (onTap == null) return card;
-    return InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: onTap,
-      child: card,
-    );
+    final tip = tooltip;
+    if (tip == null) return button;
+    return Tooltip(message: tip, child: button);
   }
 }
 

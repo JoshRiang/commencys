@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 
-import '../services/app_config.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass.dart';
+import '../widgets/server_dialog.dart';
 
-/// Commencys home: greeting header + SOS hero + quick actions.
-///
-/// Server icon opens backend address setting so the app works on a
-/// physical phone (emulator default `10.0.2.2` only works in emulator).
+/// Home tab: greeting header + SOS hero + quick actions, all in
+/// Liquid Glass. Server setting lives here and on the Map top bar.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -20,6 +18,7 @@ class HomeScreen extends StatelessWidget {
             floating: true,
             pinned: false,
             expandedHeight: 118,
+            backgroundColor: Colors.transparent,
             flexibleSpace: FlexibleSpaceBar(
               background: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 56, 20, 0),
@@ -50,8 +49,11 @@ class HomeScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    _ServerButton(
-                      onPressed: () => _openServerDialog(context),
+                    GlassIconButton(
+                      icon: Icons.dns_outlined,
+                      size: 44,
+                      tooltip: 'Backend server',
+                      onPressed: () => showServerDialog(context),
                     ),
                   ],
                 ),
@@ -62,8 +64,10 @@ class HomeScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                // SOS hero
-                GlassCard(
+                // SOS hero: red gradient core in a glass surround.
+                LiquidGlass(
+                  radius: 28,
+                  blur: 28,
                   padding: const EdgeInsets.fromLTRB(20, 22, 20, 22),
                   child: Column(
                     children: [
@@ -88,6 +92,11 @@ class HomeScreen extends StatelessWidget {
                                 AppColors.sosStart,
                                 AppColors.sosEnd
                               ],
+                            ),
+                            border: Border.all(
+                              color: Colors.white
+                                  .withValues(alpha: 0.65),
+                              width: 3,
                             ),
                             boxShadow: [
                               BoxShadow(
@@ -201,41 +210,6 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
-
-  Future<void> _openServerDialog(BuildContext context) {
-    return showDialog<void>(
-      context: context,
-      builder: (context) => const _ServerDialog(),
-    );
-  }
-}
-
-class _ServerButton extends StatelessWidget {
-  final VoidCallback onPressed;
-
-  const _ServerButton({required this.onPressed});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(
-            color: Colors.black.withValues(alpha: 0.06)),
-      ),
-      elevation: 0,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: onPressed,
-        child: const Padding(
-          padding: EdgeInsets.all(10),
-          child: Icon(Icons.dns_outlined,
-              color: AppColors.secondary, size: 20),
-        ),
-      ),
-    );
-  }
 }
 
 class _ActionCard extends StatelessWidget {
@@ -283,94 +257,6 @@ class _ActionCard extends StatelessWidget {
                   color: AppColors.secondary, fontSize: 12)),
         ],
       ),
-    );
-  }
-}
-
-/// Edits the backend base URL at runtime.
-class _ServerDialog extends StatefulWidget {
-  const _ServerDialog();
-
-  @override
-  State<_ServerDialog> createState() => _ServerDialogState();
-}
-
-class _ServerDialogState extends State<_ServerDialog> {
-  final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _ctrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = TextEditingController(text: AppConfig.baseUrl);
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20)),
-      title: const Text('Backend server',
-          style: TextStyle(fontWeight: FontWeight.w800)),
-      content: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextFormField(
-              controller: _ctrl,
-              keyboardType: TextInputType.url,
-              decoration: const InputDecoration(
-                labelText: 'Base URL',
-                hintText: 'http://192.168.1.10:8000',
-                border: OutlineInputBorder(),
-              ),
-              validator: (v) {
-                final value = (v ?? '').trim();
-                if (value.isEmpty) return 'Required';
-                final uri = Uri.tryParse(value);
-                if (uri == null ||
-                    !(uri.scheme == 'http' ||
-                        uri.scheme == 'https') ||
-                    uri.host.isEmpty) {
-                  return 'Use http(s)://host:port';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Emulator default: http://10.0.2.2:8000. '
-              'On a physical phone use the backend host on your LAN.',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        FilledButton(
-          onPressed: () {
-            if (!_formKey.currentState!.validate()) return;
-            AppConfig.setBaseUrl(_ctrl.text);
-            Navigator.pop(context);
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Server: ${AppConfig.baseUrl}')),
-            );
-          },
-          child: const Text('Save'),
-        ),
-      ],
     );
   }
 }
