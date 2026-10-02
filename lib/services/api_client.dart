@@ -108,5 +108,65 @@ class ApiClient {
     return Incident.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
   }
 
+  /// Coordinator triage inbox: tickets AI flagged for human review.
+  Future<List<Incident>> fetchReviewQueue() async {
+    final res = await _client
+        .get(Uri.parse('$baseUrl/api/review-queue'))
+        .timeout(requestTimeout);
+    if (res.statusCode != 200) {
+      throw Exception('Failed to load review queue (${res.statusCode})');
+    }
+    final List<dynamic> data = jsonDecode(res.body) as List<dynamic>;
+    return data
+        .map((e) => Incident.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Coordinator correction — metadata only, raw report stays immutable.
+  Future<Incident> correctTicket({
+    required String ticketId,
+    String? aiCategory,
+    String? urgency,
+  }) async {
+    final res = await _client
+        .post(
+          Uri.parse('$baseUrl/api/incidents/$ticketId/correct'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'ai_category': aiCategory,
+            'urgency': urgency,
+          }),
+        )
+        .timeout(requestTimeout);
+    if (res.statusCode != 200) {
+      throw Exception('Failed to correct ticket (${res.statusCode})');
+    }
+    return Incident.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+  }
+
+  /// Reversible clustering: clear this ticket's cluster link.
+  Future<Incident> splitCluster({required String ticketId}) async {
+    final res = await _client
+        .post(Uri.parse('$baseUrl/api/incidents/$ticketId/split'))
+        .timeout(requestTimeout);
+    if (res.statusCode != 200) {
+      throw Exception('Failed to split cluster (${res.statusCode})');
+    }
+    return Incident.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+  }
+
+  /// Immutable audit trail for one ticket (spec station 9).
+  Future<List<Map<String, dynamic>>> fetchAudit(String ticketId) async {
+    final res = await _client
+        .get(Uri.parse(
+            '$baseUrl/api/audit?incident_id=${Uri.encodeComponent(ticketId)}'))
+        .timeout(requestTimeout);
+    if (res.statusCode != 200) {
+      throw Exception('Failed to load audit (${res.statusCode})');
+    }
+    final List<dynamic> data = jsonDecode(res.body) as List<dynamic>;
+    return data.map((e) => e as Map<String, dynamic>).toList();
+  }
+
   void dispose() => _client.close();
 }

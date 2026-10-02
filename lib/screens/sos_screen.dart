@@ -4,6 +4,7 @@ import '../models/incident.dart';
 import '../services/api_client.dart';
 import '../services/location_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/ai_badges.dart';
 import '../widgets/glass.dart';
 import '../widgets/status_timeline.dart';
 
@@ -204,6 +205,8 @@ class _SosScreenState extends State<SosScreen> {
                         fontSize: 13,
                       ),
                     ),
+                    const SizedBox(height: 6),
+                    AiTriageBadges(incident: ticket),
                     if (ticket.accuracyM != null) ...[
                       const SizedBox(height: 6),
                       Row(

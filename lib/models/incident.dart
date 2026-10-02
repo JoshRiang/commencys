@@ -26,6 +26,8 @@ class Incident {
   final double? aiConfidence;
   final bool needsReview;
   final String? clusterId;
+  final String? aiSuggestedUrgency;
+  final double? aiUrgencyConf;
   final DateTime createdAt;
   final String reporterName;
 
@@ -45,6 +47,8 @@ class Incident {
     this.aiConfidence,
     this.needsReview = false,
     this.clusterId,
+    this.aiSuggestedUrgency,
+    this.aiUrgencyConf,
     required this.createdAt,
     required this.reporterName,
   });
@@ -86,6 +90,8 @@ class Incident {
       aiConfidence: (json['ai_confidence'] as num?)?.toDouble(),
       needsReview: json['needs_review'] == true,
       clusterId: json['cluster_id']?.toString(),
+      aiSuggestedUrgency: json['ai_suggested_urgency']?.toString(),
+      aiUrgencyConf: (json['ai_urgency_conf'] as num?)?.toDouble(),
       createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '') ??
           DateTime.now(),
       reporterName: json['reporter_name']?.toString() ?? 'Anonymous',
@@ -109,6 +115,8 @@ class Incident {
       'ai_confidence': aiConfidence,
       'needs_review': needsReview,
       'cluster_id': clusterId,
+      'ai_suggested_urgency': aiSuggestedUrgency,
+      'ai_urgency_conf': aiUrgencyConf,
       'created_at': createdAt.toIso8601String(),
       'reporter_name': reporterName,
     };
@@ -131,6 +139,8 @@ class Incident {
       aiConfidence: aiConfidence,
       needsReview: needsReview,
       clusterId: clusterId,
+      aiSuggestedUrgency: aiSuggestedUrgency,
+      aiUrgencyConf: aiUrgencyConf,
       createdAt: createdAt,
       reporterName: reporterName,
     );

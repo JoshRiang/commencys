@@ -5,6 +5,7 @@ import '../models/incident.dart';
 import '../services/api_client.dart';
 import '../services/websocket_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/ai_badges.dart';
 import '../widgets/glass.dart';
 
 /// Alerts as a glass timeline list over a soft gradient backdrop.
@@ -23,6 +24,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
   List<Incident> _incidents = [];
   bool _loading = true;
   bool _live = false;
+  bool _reviewOnly = false;
 
   @override
   void initState() {
@@ -61,6 +63,55 @@ class _AlertsScreenState extends State<AlertsScreen> {
     super.dispose();
   }
 
+  Future<void> _openCoordinator(Incident incident) async {
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => CoordinatorActionsSheet(
+        incident: incident,
+        onCorrect: ({category, urgency}) async {
+          try {
+            await _api.correctTicket(
+              ticketId: incident.id,
+              aiCategory: category ?? incident.aiCategory,
+              urgency: urgency,
+            );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                    content: Text('Correction saved — raw report kept.')),
+              );
+              _load(silent: true);
+            }
+          } catch (e) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Correction failed: $e')),
+              );
+            }
+          }
+        },
+        onSplit: () async {
+          try {
+            await _api.splitCluster(ticketId: incident.id);
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Cluster link cleared.')),
+              );
+              _load(silent: true);
+            }
+          } catch (e) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Split failed: $e')),
+              );
+            }
+          }
+        },
+      ),
+    );
+  }
+
   IconData _categoryIcon(String c) {
     switch (c) {
       case 'medical':
@@ -82,6 +133,10 @@ class _AlertsScreenState extends State<AlertsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final reviewCount = _incidents.where((e) => e.needsReview).length;
+    final visible = _reviewOnly
+        ? _incidents.where((e) => e.needsReview).toList()
+        : _incidents;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Alerts'),
@@ -124,14 +179,53 @@ class _AlertsScreenState extends State<AlertsScreen> {
                   child: ListView.builder(
                     padding:
                         const EdgeInsets.fromLTRB(16, 4, 16, 24),
-                    itemCount: _incidents.length,
+                    itemCount: visible.length + (reviewCount > 0 ? 1 : 0),
                     itemBuilder: (context, i) {
-                      final incident = _incidents[i];
+                      if (reviewCount > 0 && i == 0) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: LiquidGlass(
+                            radius: 20,
+                            blur: 24,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 10),
+                            onTap: () => setState(
+                                () => _reviewOnly = !_reviewOnly),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.rate_review_outlined,
+                                  size: 18,
+                                  color: Color(0xFFB45309),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Needs review ($reviewCount)',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                                Pill(
+                                  label:
+                                      _reviewOnly ? 'SHOWING' : 'FILTER',
+                                  bg: AppColors.warningSoft,
+                                  fg: const Color(0xFFB45309),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+                      final idx = reviewCount > 0 ? i - 1 : i;
+                      final incident = visible[idx];
                       final sev =
                           AppColors.severityFor(incident.severity.name);
                       final sevSoft = AppColors.severitySoftFor(
                           incident.severity.name);
-                      final last = i == _incidents.length - 1;
+                      final last = idx == visible.length - 1;
                       return IntrinsicHeight(
                         child: Row(
                           crossAxisAlignment:
@@ -212,6 +306,13 @@ class _AlertsScreenState extends State<AlertsScreen> {
                                                     .secondary,
                                                 fontSize: 12.5,
                                               ),
+                                            ),
+                                            const SizedBox(height: 6),
+                                            AiTriageBadges(
+                                              incident: incident,
+                                              onClusterTap: () =>
+                                                  _openCoordinator(
+                                                      incident),
                                             ),
                                           ],
                                         ),

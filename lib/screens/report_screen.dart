@@ -27,6 +27,47 @@ class _ReportScreenState extends State<ReportScreen> {
   String _severity = 'medium';
   bool _sending = false;
 
+  /// Local keyword preview — mirrors the backend heuristic client-side so
+  /// the reporter sees what AI will likely say. Labelled preview, not final:
+  /// the server classifies after submit (spec station 4).
+  String _aiPreview() {
+    final t =
+        '${_titleCtrl.text} ${_descCtrl.text}'.toLowerCase();
+    if (t.trim().isEmpty) return '';
+    String cat = _category;
+    var conf = 'LOW';
+    const hints = {
+      'fire': ['api', 'kebakaran', 'fire', 'asap', 'terbakar'],
+      'medical': ['pingsan', 'jantung', 'sesak', 'luka', 'ambulans'],
+      'accident': ['tabrak', 'kecelakaan', 'jatuh', 'crash'],
+      'security': ['maling', 'curi', 'begal', 'serang', 'rampok'],
+      'facility': ['listrik', 'bocor', 'genset', 'lift'],
+    };
+    var best = 0;
+    hints.forEach((k, words) {
+      final hits = words.where((w) => t.contains(w)).length;
+      if (hits > best) {
+        best = hits;
+        cat = k;
+      }
+    });
+    if (best >= 2) {
+      conf = 'HIGH';
+    } else if (best == 1) {
+      conf = 'MEDIUM';
+    }
+    String urg = 'P3';
+    const p1 = ['pingsan', 'tidak sadar', 'jantung', 'sesak', 'terjebak',
+      'berdarah', 'kebakaran besar', 'ledakan'];
+    const p2 = ['luka parah', 'kebakaran', 'asap tebal', 'bocor gas',
+      'begal', 'keracunan'];
+    if (p1.any((k) => t.contains(k))) {
+      urg = 'P1';
+    } else if (p2.any((k) => t.contains(k))) {
+      urg = 'P2';
+    }
+    return 'Looks like: $cat · $urg ($conf) — AI confirms after submit';
+  }
   static const _categories = [
     ('medical', Icons.medical_services_rounded),
     ('accident', Icons.car_crash_rounded),
@@ -165,6 +206,35 @@ class _ReportScreenState extends State<ReportScreen> {
                     validator: (v) =>
                         (v == null || v.trim().isEmpty) ? 'Required' : null,
                   ),
+                  Builder(builder: (context) {
+                    final preview = _aiPreview();
+                    if (preview.isEmpty) {
+                      return const SizedBox.shrink();
+                    }
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.auto_awesome_outlined,
+                            size: 14,
+                            color: AppColors.info,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'AI preview · $preview',
+                              style: const TextStyle(
+                                color: AppColors.secondary,
+                                fontSize: 12,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
                 ],
               ),
             ),

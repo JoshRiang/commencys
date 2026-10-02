@@ -50,6 +50,32 @@ params — radius, `since`, urgency filter).
 `acknowledged|broadcast → dispatched`. Records `dispatched_to`, emits
 `incident.dispatched` on WS.
 
+## `GET /api/review-queue` → 200
+
+Coordinator triage inbox: tickets with `needs_review: true` (AI confidence
+< 0.65 or a pending urgency escalation). Same ticket shape as
+`GET /api/incidents`.
+
+## `POST /api/incidents/{id}/correct` → 200
+
+Coordinator correction. Body: `{"ai_category"?: string, "urgency"?: "P1"-"P4"}`.
+Raw `title`/`description` are immutable — only metadata changes; an urgency
+change stamps `urgency_source: "coordinator_corrected"` and clears
+`needs_review`. Returns the updated ticket; 404 for unknown id, 422 for bad
+urgency.
+
+## `POST /api/incidents/{id}/split` → 200
+
+Reversible clustering: clears this ticket's `cluster_id` (false-merge undo).
+Returns the updated ticket; 404 for unknown id.
+
+## `GET /api/audit?incident_id=<id>` → 200
+
+Immutable audit trail (spec station 9): `[{ts, action, incident_id,
+model_version, detail}]`. Actions: `create`, `ai_classify`, `cluster`,
+`dispatch`, `correct`, `split`; `model_version` is `heuristic-v2`.
+Without `incident_id` returns the full log.
+
 ## `GET /api/eta?from_lat&from_lng&to_lat&to_lng` → 200
 
 ```json
@@ -80,5 +106,6 @@ backoff + REST re-sync (`GET /api/incidents`) on flaky networks (spec §3).
 `id, title, description, category, latitude, longitude, accuracy_m,
 reporter_name, urgency (P1–P4), urgency_source, status
 (reported|acknowledged|broadcast|dispatched|resolved), ai_category,
-ai_confidence, needs_review, cluster_id, created_at`.
+ai_confidence, ai_suggested_urgency, ai_urgency_conf, needs_review,
+cluster_id, created_at`.
 Raw report fields are immutable after creation; only metadata + status change.

@@ -63,6 +63,13 @@ class IncidentIn(BaseModel):
     reporter_name: str = "Anonymous"
 
 
+class CorrectIn(BaseModel):
+    """Coordinator correction — raw title/description stay immutable."""
+
+    ai_category: Optional[str] = None
+    urgency: Optional[str] = None
+
+
 class Incident(BaseModel):
     id: str = Field(default_factory=lambda: uuid4().hex[:12])
     title: str
@@ -79,6 +86,8 @@ class Incident(BaseModel):
     ai_confidence: Optional[float] = None
     needs_review: bool = False
     cluster_id: Optional[str] = None
+    ai_suggested_urgency: Optional[str] = None
+    ai_urgency_conf: Optional[float] = None
     created_at: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
     )

@@ -6,6 +6,7 @@ import '../models/incident.dart';
 import '../services/api_client.dart';
 import '../services/location_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/ai_badges.dart';
 import '../widgets/glass.dart';
 import '../widgets/server_dialog.dart';
 
@@ -33,6 +34,7 @@ class _MapScreenState extends State<MapScreen> {
   LatLng? _myPosition;
   bool _loading = true;
   String _query = '';
+  String? _clusterFilter;
 
   @override
   void initState() {
@@ -122,6 +124,17 @@ class _MapScreenState extends State<MapScreen> {
                     style: const TextStyle(fontSize: 14, height: 1.4)),
               ],
               const SizedBox(height: 12),
+              AiTriageBadges(
+                incident: i,
+                clusterSize: _clusterSize(i.clusterId),
+                onClusterTap: i.clusterId == null
+                    ? null
+                    : () {
+                        Navigator.pop(context);
+                        setState(() => _clusterFilter = i.clusterId);
+                      },
+              ),
+              const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
@@ -143,14 +156,23 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   List<Incident> get _filtered {
-    if (_query.isEmpty) return _incidents;
+    Iterable<Incident> items = _incidents;
+    if (_clusterFilter != null) {
+      items = items.where((i) => i.clusterId == _clusterFilter);
+    }
+    if (_query.isEmpty) return items.toList();
     final q = _query.toLowerCase();
-    return _incidents
+    return items
         .where((i) =>
             i.title.toLowerCase().contains(q) ||
             i.category.toLowerCase().contains(q) ||
             i.description.toLowerCase().contains(q))
         .toList();
+  }
+
+  int _clusterSize(String? cid) {
+    if (cid == null) return 0;
+    return _incidents.where((e) => e.clusterId == cid).length;
   }
 
   @override
@@ -382,7 +404,18 @@ class _MapScreenState extends State<MapScreen> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          if (_loading)
+                          if (_clusterFilter != null)
+                            GestureDetector(
+                              onTap: () =>
+                                  setState(() => _clusterFilter = null),
+                              child: Pill(
+                                label:
+                                    'cluster ${_clusterFilter!.length > 6 ? _clusterFilter!.substring(0, 6) : _clusterFilter!} ✕',
+                                bg: AppColors.successSoft,
+                                fg: AppColors.success,
+                              ),
+                            )
+                          else if (_loading)
                             const SizedBox(
                               width: 15,
                               height: 15,
@@ -508,6 +541,19 @@ class _MapScreenState extends State<MapScreen> {
                                                           .secondary,
                                                       fontSize:
                                                           12),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                AiTriageBadges(
+                                                  incident: i,
+                                                  clusterSize:
+                                                      _clusterSize(
+                                                          i.clusterId),
+                                                  onClusterTap: i.clusterId ==
+                                                          null
+                                                      ? null
+                                                      : () => setState(() =>
+                                                          _clusterFilter =
+                                                              i.clusterId),
                                                 ),
                                               ],
                                             ),

@@ -45,6 +45,19 @@ are standardised so annotation and inference stay consistent.
 → `backend/app/ai_pipeline.py` (`CONFIDENCE_THRESHOLD`, `classify()`),
 `docs/evaluation-monitoring.md`
 
+Implemented as `heuristic-v2` (keyword stand-in behind the IndoBERT
+interface — same thresholds, same metadata contract):
+* Urgency inference (`infer_urgency()`): P1 signals (pingsan / tidak sadar /
+  jantung / sesak / terjebak / berdarah / kebakaran besar / ledakan) and P2
+  signals (luka parah / kebakaran / asap tebal / bocor gas / begal /
+  keracunan) suggest a **higher** urgency only. The original `urgency` field
+  is never mutated by AI; the suggestion lands in `ai_suggested_urgency` +
+  `ai_urgency_conf` with `urgency_source='ai_triage_pending_review'`.
+  SOS tickets stay P1 fail-safe unconditionally.
+* Low confidence (< 0.65) **or** a pending escalation sets
+  `needs_review=true`, surfaced in `GET /api/review-queue` and the Alerts
+  "Needs review (N)" row.
+
 ## 5. RAG — retrieving documents before answering
 
 **Not on the SOS/notification critical path.** Post-MVP: RAG on the
@@ -69,6 +82,12 @@ OSRM shortest-route + ETA. UI strictly separates "Laporan Diterima Sistem"
 (acknowledged) from a volunteer accepting the ticket (dispatched).
 → `docs/02-design.md` (diagram), `backend/app/main.py`, `lib/`
 
+Implemented: classification + clustering run as FastAPI BackgroundTasks
+(`_enrich`), `incident.ai_updated` fans out on WS, clustering backfills new
+cluster ids onto neighbours, coordinator endpoints (`correct` / `split`)
+and the Flutter AI surfaces (`AiTriageBadges`, review-queue filter, AI
+preview on the report form) close the loop.
+
 ## 8. Evaluation & Monitoring — measuring quality continuously
 
 Tracked: SOS end-to-end latency (< 5 s), WS delivery rate, IndoBERT
@@ -76,6 +95,12 @@ accuracy/F1, DBSCAN false-merge ratio, OSRM ETA calibration vs actual travel
 time. **FN priority:** high-risk reports must never be missed or silently
 downgraded.
 → `docs/evaluation-monitoring.md`
+
+Implemented in MVP: pytest guards (`backend/tests/test_api.py`) —
+SOS ack < 5 s, SOS never downgraded by AI, AI escalation advisory-only,
+review-queue contents, cluster + split reversibility, correction keeps raw
+immutable, audit lifecycle (`create` → `ai_classify` → `cluster`/`dispatch`/
+`correct`/`split`, all stamped `model_version='heuristic-v2'`).
 
 ## 9. Responsible AI & Guardrails — protecting users
 

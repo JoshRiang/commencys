@@ -25,8 +25,8 @@ from fastapi import BackgroundTasks, FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from .ai_pipeline import classify, cluster
-from .models import Incident, IncidentIn, SosIn, Status, Urgency
+from .ai_pipeline import MODEL_VERSION, classify, cluster
+from .models import CorrectIn, Incident, IncidentIn, SosIn, Status, Urgency
 
 log = logging.getLogger("commencys")
 logging.basicConfig(level=logging.INFO)
@@ -45,6 +45,24 @@ app.add_middleware(
 _store: dict[str, dict[str, Any]] = {}
 _lock = asyncio.Lock()
 _sockets: set[WebSocket] = set()
+
+#: In-memory audit trail (spec station 9). Production moves this to the
+#: append-only audit table in docs/db-schema.md.
+_audit_log: list[dict[str, Any]] = []
+
+
+def _audit(action: str, ticket_id: str,
+           detail: str | None = None) -> dict[str, Any]:
+    from datetime import datetime, timezone
+    entry = {
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "action": action,
+        "incident_id": ticket_id,
+        "model_version": MODEL_VERSION,
+        "detail": detail,
+    }
+    _audit_log.append(entry)
+    return entry
 
 
 # ---------------------------------------------------------------- helpers
@@ -68,9 +86,19 @@ async def _enrich(ticket_id: str) -> None:
         neighbours = [t for t in _store.values() if t["id"] != ticket_id]
     try:
         await classify(ticket)
-        await cluster(ticket, neighbours)
+        linked = await cluster(ticket, neighbours)
+        _audit("ai_classify", ticket_id,
+               f"{ticket.get('ai_category')} {ticket.get('ai_confidence')} "
+               f"urg~{ticket.get('ai_suggested_urgency')}")
+        if ticket.get("cluster_id"):
+            _audit("cluster", ticket_id, ticket["cluster_id"])
         async with _lock:
             _store[ticket_id] = ticket
+            for nid in linked:  # backfill new cluster onto neighbours
+                other = _store.get(nid)
+                if other is not None and not other.get("cluster_id"):
+                    other["cluster_id"] = ticket["cluster_id"]
+                    _store[nid] = other
         await _broadcast(ticket_to_frame(ticket, event="incident.ai_updated"))
     except Exception as exc:  # noqa: BLE001 — AI failure must not break SOS
         log.warning("AI enrichment failed for %s: %s", ticket_id, exc)
@@ -118,6 +146,7 @@ async def create_incident(body: IncidentIn,
     ).model_dump()
     async with _lock:
         _store[ticket["id"]] = ticket
+    _audit("create", ticket["id"], body.title[:80])
     background.add_task(_enrich, ticket["id"])
     asyncio.create_task(_broadcast(ticket_to_frame(ticket, "incident.created")))
     return JSONResponse(status_code=201, content=ticket)
@@ -143,6 +172,7 @@ async def send_sos(body: SosIn, background: BackgroundTasks) -> JSONResponse:
     async with _lock:
         _store[ticket["id"]] = ticket
     # Immediate fan-out: broadcast must not wait for AI (criterion 4).
+    _audit("create", ticket["id"], "SOS")
     asyncio.create_task(_broadcast(ticket_to_frame(ticket, "incident.sos")))
     background.add_task(_enrich, ticket["id"])
     elapsed = time.perf_counter() - started
@@ -163,9 +193,62 @@ async def dispatch(ticket_id: str, volunteer: str = "volunteer") -> JSONResponse
                                 content={"detail": "ticket not found"})
         ticket["status"] = Status.DISPATCHED.value
         ticket["dispatched_to"] = volunteer
+    _audit("dispatch", ticket_id, volunteer)
     asyncio.create_task(
         _broadcast(ticket_to_frame(ticket, "incident.dispatched")))
     return JSONResponse(status_code=200, content=ticket)
+
+
+@app.get("/api/review-queue")
+async def review_queue() -> list[dict[str, Any]]:
+    """Coordinator triage inbox: tickets AI flagged for human review."""
+    async with _lock:
+        return [t for t in _store.values() if t.get("needs_review")]
+
+
+@app.post("/api/incidents/{ticket_id}/correct", status_code=200)
+async def correct(ticket_id: str, body: CorrectIn) -> JSONResponse:
+    """Coordinator correction. Raw title/description are immutable — only
+    metadata changes. Urgency changes are stamped coordinator_corrected."""
+    async with _lock:
+        ticket = _store.get(ticket_id)
+        if ticket is None:
+            return JSONResponse(status_code=404,
+                                content={"detail": "ticket not found"})
+        if body.ai_category is not None:
+            ticket["ai_category"] = body.ai_category
+        if body.urgency is not None:
+            urg = (body.urgency or "").upper()
+            if urg not in ("P1", "P2", "P3", "P4"):
+                return JSONResponse(status_code=422,
+                                    content={"detail": "urgency must be P1-P4"})
+            ticket["urgency"] = urg
+            ticket["urgency_source"] = "coordinator_corrected"
+        ticket["needs_review"] = False
+    _audit("correct", ticket_id,
+           f"cat={body.ai_category} urg={body.urgency}")
+    return JSONResponse(status_code=200, content=ticket)
+
+
+@app.post("/api/incidents/{ticket_id}/split", status_code=200)
+async def split_cluster(ticket_id: str) -> JSONResponse:
+    """Reversible clustering: clear this ticket's cluster link."""
+    async with _lock:
+        ticket = _store.get(ticket_id)
+        if ticket is None:
+            return JSONResponse(status_code=404,
+                                content={"detail": "ticket not found"})
+        ticket["cluster_id"] = None
+    _audit("split", ticket_id, "cluster_id cleared")
+    return JSONResponse(status_code=200, content=ticket)
+
+
+@app.get("/api/audit")
+async def audit(incident_id: str | None = None) -> list[dict[str, Any]]:
+    """Immutable audit trail (spec station 9). Filter by incident."""
+    if incident_id:
+        return [e for e in _audit_log if e["incident_id"] == incident_id]
+    return list(_audit_log)
 
 
 @app.get("/api/eta")
