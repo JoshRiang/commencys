@@ -1,3 +1,9 @@
+---
+layout: default
+title: Evaluation + monitoring
+nav_order: 24
+---
+
 # Evaluation & Monitoring Plan (spec station 8)
 
 ## Metrics, targets, instruments

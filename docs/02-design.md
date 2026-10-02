@@ -1,3 +1,9 @@
+---
+layout: default
+title: Design
+nav_order: 12
+---
+
 # 02 — Design
 
 ## Architecture

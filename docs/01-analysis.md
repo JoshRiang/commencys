@@ -1,3 +1,9 @@
+---
+layout: default
+title: Analysis
+nav_order: 11
+---
+
 # 01 — Analysis
 
 ## User story

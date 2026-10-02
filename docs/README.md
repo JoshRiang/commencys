@@ -1,6 +1,13 @@
+---
+layout: default
+title: Docs contents
+nav_order: 2
+nav_exclude: true
+---
+
 # Commencys docs
 
-Start here: [README](../README.md) · [Architecture](#architecture) ·
+Start here: [Home](index.md) · [Repo README](https://github.com/JoshRiang/commencys#readme) · [Architecture](#architecture) ·
 [API contract](api-contract.md) · [Phone install](05-deployment.md#phone-install)
 
 ## Contents

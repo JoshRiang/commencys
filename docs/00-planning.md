@@ -1,3 +1,9 @@
+---
+layout: default
+title: Planning
+nav_order: 10
+---
+
 # 00 — Planning
 
 **Project:** Commencys — Community Emergency Response Platform · **Repo:** `JoshRiang/commencys`

@@ -1,0 +1,33 @@
+# Commencys docs site — built by GitHub Pages from the /docs folder.
+remote_theme: just-the-docs/just-the-docs
+title: Commencys Docs
+description: Community Emergency Response Platform — one-tap SOS, incident reporting, live coordination.
+baseurl: /commencys
+url: https://joshriang.github.io
+
+# Theme behaviour
+theme_color_scheme: dark
+search_enabled: true
+heading_anchors: true
+permalink: pretty
+exclude:
+  - architecture.mmd
+plugins:
+  - jekyll-remote-theme
+  - jekyll-seo-tag
+  - jekyll-relative-links
+
+# Mermaid diagrams (rendered client-side by just-the-docs)
+mermaid:
+  version: "10.9.4"
+
+# Default layout for every page (files still need front matter to be processed)
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: default
+
+aux_links:
+  "Commencys on GitHub":
+    - https://github.com/JoshRiang/commencys

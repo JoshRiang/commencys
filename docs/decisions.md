@@ -1,3 +1,9 @@
+---
+layout: default
+title: Decisions
+nav_order: 21
+---
+
 # Key Technical Decisions + Trade-offs
 
 ## D1 — IndoBERT for report classification

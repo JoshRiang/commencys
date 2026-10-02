@@ -1,3 +1,9 @@
+---
+layout: default
+title: AI stations
+nav_order: 20
+---
+
 # AI Stations Mapping (9-station AI architecture)
 
 Design reference: "Designing an AI-Powered Feature" (Sep 2026).

@@ -1,3 +1,9 @@
+---
+layout: default
+title: API contract
+nav_order: 22
+---
+
 # API Contract (FastAPI — client-agnostic)
 
 Base URL: emulator `http://10.0.2.2:8000`, device-on-LAN `http://<host>:8000`.

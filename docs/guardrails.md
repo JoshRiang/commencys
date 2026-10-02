@@ -1,3 +1,9 @@
+---
+layout: default
+title: Guardrails
+nav_order: 25
+---
+
 # Responsible AI & Guardrails (spec station 9)
 
 **One-paragraph statement (spec §4):** Commencys collects only what

@@ -1,3 +1,9 @@
+---
+layout: default
+title: DB schema
+nav_order: 23
+---
+
 # DB Schema — PostgreSQL/PostGIS (production target)
 
 The MVP skeleton (`backend/app/main.py`) keeps an in-memory dict with the

@@ -1,3 +1,9 @@
+---
+layout: default
+title: Maintenance + SOPs
+nav_order: 16
+---
+
 # 06 — Maintenance + SOPs
 
 ## SOP-1 · Coordinator triage (daily during pilot)

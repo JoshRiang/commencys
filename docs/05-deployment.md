@@ -1,3 +1,9 @@
+---
+layout: default
+title: Deployment
+nav_order: 15
+---
+
 # 05 — Deployment
 
 ## Table of contents
