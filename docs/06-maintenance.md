@@ -1,10 +1,11 @@
 ---
 layout: default
-title: Maintenance + SOPs
+title: 7 · Maintenance & SOPs
 nav_order: 16
+parent: SDLC — Waterfall Model
 ---
 
-# 06 — Maintenance + SOPs
+# 06 — Maintenance & SOPs
 
 ## SOP-1 · Coordinator triage (daily during pilot)
 

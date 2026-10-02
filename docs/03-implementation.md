@@ -1,7 +1,8 @@
 ---
 layout: default
-title: Implementation
+title: 4 · Implementation
 nav_order: 13
+parent: SDLC — Waterfall Model
 ---
 
 # 03 — Implementation
@@ -19,7 +20,17 @@ nav_order: 13
 | Accuracy-aware SOS payload | `lib/services/api_client.dart`, `lib/services/location_service.dart` | Criterion 1 |
 | Spec-aligned categories | `lib/screens/report_screen.dart` | Station 4 taxonomy |
 
-## Client changes (detail)
+## Client — Apple liquid-glass reskin (maintenance change request `a811497`)
+
+UI-only reskin on top of the frozen API contract — no endpoint or schema
+changed. Greeting header + SOS hero on home, fail-safe P1 pill + ticket card
+on SOS, chip pickers on report, severity pins + bottom sheet on map, glass
+alert cards + LIVE/SYNCING pill on alerts, stepper timeline. Theme tokens in
+`lib/theme/app_theme.dart`, shared kit in `lib/widgets/glass.dart`.
+CI green: backend `pytest` + Flutter analyze/test/release APK on the same
+commit (run `36966554133` / `36966554085`).
+
+## Client changes (detail, MVP baseline)
 
 - `sos_screen.dart`: after `sendSos`, shows the returned ticket id / urgency /
   status via `StatusTimeline` (acknowledged → broadcast → dispatched →

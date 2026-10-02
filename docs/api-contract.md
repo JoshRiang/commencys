@@ -1,7 +1,8 @@
 ---
 layout: default
-title: API contract
-nav_order: 22
+title: API Contract
+nav_order: 1
+parent: Reference
 ---
 
 # API Contract (FastAPI — client-agnostic)

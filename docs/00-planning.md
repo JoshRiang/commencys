@@ -1,10 +1,11 @@
 ---
 layout: default
-title: Planning
+title: 1 · Planning (Charter)
 nav_order: 10
+parent: SDLC — Waterfall Model
 ---
 
-# 00 — Planning
+# 00 — Planning (Project Charter)
 
 **Project:** Commencys — Community Emergency Response Platform · **Repo:** `JoshRiang/commencys`
 

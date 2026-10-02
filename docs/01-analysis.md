@@ -1,10 +1,11 @@
 ---
 layout: default
-title: Analysis
+title: 2 · Requirements Analysis
 nav_order: 11
+parent: SDLC — Waterfall Model
 ---
 
-# 01 — Analysis
+# 01 — Requirements Analysis
 
 ## User story
 

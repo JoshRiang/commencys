@@ -1,7 +1,8 @@
 ---
 layout: default
-title: Decisions
-nav_order: 21
+title: Technical Decisions
+nav_order: 4
+parent: Reference
 ---
 
 # Key Technical Decisions + Trade-offs

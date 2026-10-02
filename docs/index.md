@@ -21,6 +21,37 @@ and OSRM ETAs.
 > Community early-response aid — **not** a substitute for official
 > emergency services (112 / SPGDT 119).
 
+## At a glance
+
+| | |
+|---|---|
+| **Platform** | Android app (Flutter) + FastAPI backend |
+| **Hot path** | SOS → persist → acknowledge in **strictly < 5 s** (P1 fail-safe) |
+| **Live channel** | WebSocket `/ws/alerts` with auto-reconnect + REST re-sync |
+| **AI** | IndoBERT triage + DBSCAN dedup, async only — never on the SOS path |
+| **Status** | MVP live: backend supervised on `:8791`, CI green, versioned APKs |
+| **Team** | Reinathan Ezkhiel Kurniawan (Mobile / SOS) · Alwahib Raffi Raihan (Map & geolocation) · Joshua Ricardo Riangkamang (Backend client & alerts) |
+
+## How these docs are organized
+
+This documentation follows the **[Waterfall SDLC](sdlc-waterfall.md)**
+used to build Commencys — each phase signs off before the next begins:
+
+| Phase | Doc | What it proves |
+|-------|-----|----------------|
+| 0 · Charter | [Planning](00-planning.md) | Problem, MVP scope, milestones, risks |
+| 1 · Requirements | [Requirements Analysis](01-analysis.md) | Acceptance criteria C1–C4, FR/NFR |
+| 2 · Design | [System Design](02-design.md) | Architecture, lifecycle, taxonomy |
+| 3 · Build | [Implementation](03-implementation.md) | What was built, file by file |
+| 4 · Verify | [Verification & Testing](04-testing.md) | Test layers, traceability, QA |
+| 5 · Ship | [Deployment](05-deployment.md) | Backend + phone install, releases |
+| 6 · Operate | [Maintenance & SOPs](06-maintenance.md) | Coordinator SOPs, model lifecycle |
+
+Reference appendices: [API contract](api-contract.md) ·
+[DB schema](db-schema.md) · [Decisions](decisions.md) ·
+[AI stations](ai-stations.md) · [Evaluation](evaluation-monitoring.md) ·
+[Guardrails](guardrails.md).
+
 ## Quickstart
 
 ```bash
@@ -41,9 +72,8 @@ same Wi-Fi/LAN — run the backend with
 `uvicorn app.main:app --host 0.0.0.0 --port 8000`, tap the server icon
 in the app bar, and enter e.g. `http://192.168.1.10:8000`.
 
-**Phone install:** grab the latest release APK from CI (the
-`app-release` artifact — versioned copy in
-[Deployment](05-deployment.md#phone-install)), allow one-time
+**Phone install:** grab the latest release APK from
+[Deployment](05-deployment.md#release-history), allow one-time
 "unknown apps" install, start the backend on the same network, set the
 server URL in-app, then send a test SOS.
 
@@ -62,7 +92,7 @@ flowchart LR
 ```
 
 Source of truth: [`architecture.mmd`](https://github.com/JoshRiang/commencys/blob/main/docs/architecture.mmd).
-Details in [Design](02-design.md) and [AI stations](ai-stations.md).
+Details in [System Design](02-design.md) and [AI stations](ai-stations.md).
 
 ## API at a glance
 
@@ -77,22 +107,6 @@ Details in [Design](02-design.md) and [AI stations](ai-stations.md).
 
 Full reference: [API contract](api-contract.md). Storage DDL:
 [DB schema](db-schema.md).
-
-## Docs map
-
-| # | Doc | What it covers |
-|---|-----|----------------|
-| 00 | [Planning](00-planning.md) | Problem, MVP scope, milestones, risks |
-| 01 | [Analysis](01-analysis.md) | User story, gap map, client note |
-| 02 | [Design](02-design.md) | Lifecycle, architecture diagram, data flow |
-| 03 | [Implementation](03-implementation.md) | What was built, file pointers |
-| 04 | [Testing](04-testing.md) | Test layers, manual QA checklist |
-| 05 | [Deployment](05-deployment.md) | Backend + phone install, release history |
-| 06 | [Maintenance + SOPs](06-maintenance.md) | Coordinator SOPs, review cadence |
-| — | [AI stations](ai-stations.md) | 9-station AI architecture mapping |
-| — | [Decisions](decisions.md) | Key technical decisions + trade-offs |
-| — | [Evaluation & monitoring](evaluation-monitoring.md) | Metrics, targets, instruments |
-| — | [Guardrails](guardrails.md) | Responsible-AI rules |
 
 ---
 

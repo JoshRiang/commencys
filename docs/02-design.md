@@ -1,10 +1,11 @@
 ---
 layout: default
-title: Design
+title: 3 · System Design
 nav_order: 12
+parent: SDLC — Waterfall Model
 ---
 
-# 02 — Design
+# 02 — System Design
 
 ## Architecture
 

@@ -7,26 +7,38 @@ nav_exclude: true
 
 # Commencys docs
 
-Start here: [Home](index.md) · [Repo README](https://github.com/JoshRiang/commencys#readme) · [Architecture](#architecture) ·
-[API contract](api-contract.md) · [Phone install](05-deployment.md#phone-install)
+Start here: [Home](index.md) · [SDLC — Waterfall](sdlc-waterfall.md) ·
+[Repo README](https://github.com/JoshRiang/commencys#readme) ·
+[API contract](api-contract.md) ·
+[Phone install](05-deployment.md#phone-install)
 
-## Contents
+## Waterfall phases
 
 | # | Doc | What it covers |
 |---|-----|----------------|
-| 00 | [Planning](00-planning.md) | problem, MVP scope, milestones, risks |
-| 01 | [Analysis](01-analysis.md) | user story, gap map, client note |
-| 02 | [Design](02-design.md) | lifecycle, architecture diagram, data flow |
-| 03 | [Implementation](03-implementation.md) | what was built, file pointers |
-| 04 | [Testing](04-testing.md) | test layers, manual QA checklist |
-| 05 | [Deployment](05-deployment.md) | backend + phone install, release history |
-| 06 | [Maintenance + SOPs](06-maintenance.md) | coordinator SOPs, review cadence |
-| — | [AI stations](ai-stations.md) | 9-station AI architecture mapping |
-| — | [Decisions](decisions.md) | key technical decisions + trade-offs |
-| — | [API contract](api-contract.md) | REST + WebSocket reference |
-| — | [DB schema](db-schema.md) | PostgreSQL/PostGIS DDL |
-| — | [Evaluation & monitoring](evaluation-monitoring.md) | metrics, targets, instruments |
-| — | [Guardrails](guardrails.md) | responsible-AI rules |
+| 0 | [Planning](00-planning.md) | charter: problem, MVP scope, milestones, risks |
+| 1 | [Requirements Analysis](01-analysis.md) | acceptance criteria C1–C4, FR/NFR, gap map |
+| 2 | [System Design](02-design.md) | lifecycle, architecture diagram, data flow |
+| 3 | [Implementation](03-implementation.md) | what was built, file pointers, UI reskin `a811497` |
+| 4 | [Verification & Testing](04-testing.md) | test layers, latest CI evidence, QA checklist |
+| 5 | [Deployment](05-deployment.md) | backend + phone install, release history (1.0.0, 1.1.0) |
+| 6 | [Maintenance & SOPs](06-maintenance.md) | coordinator SOPs, review cadence |
+
+## Reference
+
+| Doc | What it covers |
+|-----|----------------|
+| [API Contract](api-contract.md) | REST + WebSocket reference |
+| [DB Schema](db-schema.md) | PostgreSQL/PostGIS DDL |
+| [AI Stations Mapping](ai-stations.md) | 9-station AI architecture mapping |
+| [Technical Decisions](decisions.md) | key technical decisions + trade-offs |
+
+## Quality & Governance
+
+| Doc | What it covers |
+|-----|----------------|
+| [Evaluation & Monitoring](evaluation-monitoring.md) | metrics, targets, instruments |
+| [Guardrails & Responsible AI](guardrails.md) | responsible-AI rules |
 
 ## Architecture
 

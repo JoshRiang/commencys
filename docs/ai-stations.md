@@ -1,7 +1,8 @@
 ---
 layout: default
-title: AI stations
-nav_order: 20
+title: AI Stations Mapping
+nav_order: 3
+parent: Reference
 ---
 
 # AI Stations Mapping (9-station AI architecture)

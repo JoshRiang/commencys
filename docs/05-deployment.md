@@ -1,7 +1,8 @@
 ---
 layout: default
-title: Deployment
+title: 6 · Deployment
 nav_order: 15
+parent: SDLC — Waterfall Model
 ---
 
 # 05 — Deployment
@@ -75,7 +76,9 @@ tag `vX.Y.Z`.
 
 | Version | APK | Size | SHA-256 | CI run | Notes |
 |---------|-----|------|---------|--------|-------|
+| 1.1.0 (`a811497`, 2026-10-02) | `commencys-a811497-20261002.apk` | 50.3 MB | `46dd8f35…b357318` | [CI #36966554133](https://github.com/JoshRiang/commencys/actions/runs/36966554133) / [Build #36966554085](https://github.com/JoshRiang/commencys/actions/runs/36966554085) | Apple liquid-glass UI reskin (maintenance change request): theme tokens + glass kit, 5 screens reskinned, backend contract frozen, analyze clean, 7/7 + 5/5 tests |
 | 1.0.0 (`8c15973`, 2026-10-02) | `commencys-8c15973-20261002.apk` | 52.5 MB | `8bf33393…db76fa` | [CI #36911073696](https://github.com/JoshRiang/commencys/actions/runs/36911073696) | first Commencys build: `com.commencys.app`, analyze clean, 5/5 tests |
 
-Full SHA-256: `8bf33393860b81da1322e30921c8f11503a6b41a7e95905b916fd9c2e4db76fa`.
-Download: `http://<host>:8765/commencys-8c15973-20261002.apk` (local file server).
+Full SHA-256 (1.1.0): `46dd8f35fde9c78ec8f88241e3e27f0ed6cced85906d88fb5c04881b3573181f`.
+Download: `http://<host>:8765/commencys-a811497-20261002.apk` (local file server).
+Full SHA-256 (1.0.0): `8bf33393860b81da1322e30921c8f11503a6b41a7e95905b916fd9c2e4db76fa`.

@@ -1,19 +1,30 @@
 ---
 layout: default
-title: Testing
+title: 5 · Verification & Testing
 nav_order: 14
+parent: SDLC — Waterfall Model
 ---
 
-# 04 — Testing
+# 04 — Verification & Testing
 
 ## Layers
 
 | Layer | Suite | Command |
 |-------|-------|---------|
 | Backend contract + SOS budget | `backend/tests/test_api.py` (7 tests: health, SOS < 5 s ack + P1 default, create, list, dispatch transition, WS hello, ETA labelled) | `cd backend && pytest -q` |
-| Flutter model | `test/incident_test.dart` (JSON round-trip incl. new fields) | `flutter test` |
-| Static analysis | `flutter analyze` (lints) | `flutter analyze` |
+| Flutter model | `test/incident_test.dart` (5 tests: WS URL mapping, base-URL normalisation, JSON round-trip, canonical ticket incl. urgency + AI metadata, lifecycle order) | `flutter test` |
+| Static analysis | `flutter analyze` (lints) — clean on UI reskin `a811497` | `flutter analyze` |
 | CI (all, both platforms) | `.github/workflows/ci.yml`: backend job (pip + pytest) + flutter job (pub get → analyze → test → release APK) | GitHub Actions on `main` |
+
+## Latest verification (UI reskin `a811497`, 2026-10-02)
+
+| Check | Result | Evidence |
+|-------|--------|----------|
+| Backend `pytest` | ✅ 7/7 pass | CI run `36966554133` (backend job 13 s) |
+| `flutter analyze` | ✅ clean | CI run `36966554085` |
+| `flutter test` | ✅ 5/5 pass | CI run `36966554085` |
+| Release APK | ✅ built | `app-release.apk` artifact, run `36966554085` |
+| Live backend | ✅ serving | `GET /health → {"status":"ok","service":"commencys-mvp"}`, service `commencys-backend` active |
 
 ## Criterion → test traceability
 

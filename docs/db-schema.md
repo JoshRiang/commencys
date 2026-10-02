@@ -1,7 +1,8 @@
 ---
 layout: default
-title: DB schema
-nav_order: 23
+title: DB Schema
+nav_order: 2
+parent: Reference
 ---
 
 # DB Schema — PostgreSQL/PostGIS (production target)

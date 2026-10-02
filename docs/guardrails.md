@@ -1,7 +1,8 @@
 ---
 layout: default
-title: Guardrails
-nav_order: 25
+title: Guardrails & Responsible AI
+nav_order: 2
+parent: Quality & Governance
 ---
 
 # Responsible AI & Guardrails (spec station 9)

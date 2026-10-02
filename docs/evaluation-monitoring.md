@@ -1,7 +1,8 @@
 ---
 layout: default
-title: Evaluation + monitoring
-nav_order: 24
+title: Evaluation & Monitoring
+nav_order: 1
+parent: Quality & Governance
 ---
 
 # Evaluation & Monitoring Plan (spec station 8)
