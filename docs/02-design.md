@@ -64,6 +64,12 @@ negatives (see `evaluation-monitoring.md`).
    WS `incident.ai_updated`.
 2. **Dispatch:** volunteer taps accept → `POST .../dispatch` → status
    `dispatched` → WS `incident.dispatched` + OSRM ETA to volunteer.
+   Targeted variant: coordinator triggers `POST .../dispatch-auto` →
+   Laya infers `required_roles` + `headcount` (ID→EN pre-translated,
+   `< 0.5` confidence gate → heuristic fallback) → nearest matching
+   volunteers invited → WS `incident.dispatch_auto`; stored as ticket
+   metadata (`required_roles`/`invited`/`dispatch_source`), manual
+   `dispatch` override untouched.
 3. **Correction:** coordinator edits label / splits cluster → metadata-only
    update → audit row → WS update.
 

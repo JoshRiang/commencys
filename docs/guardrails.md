@@ -31,8 +31,10 @@ early-response aid, **not** a substitute for official emergency services
    correct labels and split clusters; corrections are audit-logged.
 5. **Immutable audit:** `audit_log` is append-only (`REVOKE UPDATE, DELETE`);
    AI writes include model version + confidence.
-6. **No autonomous action:** no LLM executes handling decisions; any future
-   assistant is read-only + drafts (station 6).
+6. **No autonomous action:** no model acts on the SOS hot path; Laya
+   dispatch is coordinator-triggered, heuristic-fallback-guarded, and
+   never overrides manual dispatch; any future assistant is read-only +
+   drafts (station 6).
 7. **No medical overreach:** system never issues standalone medical guidance;
    future LLM summarisation is advisory-only with officer verification.
 8. **Not-112/119 positioning:** in-app disclaimer on the SOS screen and in

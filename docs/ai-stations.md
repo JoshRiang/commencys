@@ -68,11 +68,34 @@ and never override coordinator judgement.
 
 ## 6. Tool/Function Calling & Agents — AI triggering actions
 
-**No autonomous LLM actions in the MVP.** SOS intake, dispatch approval, and
-status updates execute deterministically via FastAPI endpoints with JWT + RBAC.
-Any future assistant is strictly **read-only + draft reports**, with no direct
-mutation authority.
-→ `docs/api-contract.md` (auth), `docs/guardrails.md`
+**Laya AI dispatch (`POST /api/incidents/{id}/dispatch-auto`,
+`backend/app/laya_dispatch.py`).** The coordinator (or an automation)
+triggers dispatch-auto on a ticket; the Laya agent (default
+`http://127.0.0.1:8010`, `POST /v1/systemone`, overridable via
+`LAYA_BASE_URL` / `LAYA_TIMEOUT_S`) infers category (choice), severity
+(score 1–5), role bundle (choice) and headcount (score 1–5) over the
+incident report, and the backend matches registered volunteers by role
+overlap, nearest-first (haversine), capped at `headcount`.
+
+Guardrails that keep this advisory, never autonomous on the hot path:
+
+* The ticket report is pre-translated ID→EN with an offline glossary
+  (~50 emergency terms, e.g. `kebakaran` → `fire`; Laya's English model
+  misclassifies raw Indonesian at low confidence) — the heuristic
+  fallback still runs on the **original** Indonesian text.
+* A **confidence gate** (`< 0.5`) discards Laya's labels in favour of the
+  keyword-heuristic fallback; **any** Laya failure (timeout 15 s,
+  connection error, malformed answer) falls back with
+  `source: "fallback"` — dispatch-auto never 5xxes because of Laya.
+* The manual `POST …/dispatch` override is untouched; dispatch results
+  (`required_roles`, `invited[]`, `dispatch_source`) are stored as ticket
+  metadata, audit-logged (`dispatch_auto`) and WS-broadcast
+  (`incident.dispatch_auto`) for coordinator visibility.
+* SOS intake itself never touches Laya; JWT + RBAC remain the production
+  gateway TODO.
+→ `backend/app/laya_dispatch.py` (`VALID_ROLES`, `ROLE_BUNDLES`,
+`pretranslate_id_en`, `heuristic_dispatch`, `dispatch_incident`),
+`docs/api-contract.md` (auth), `docs/guardrails.md`
 
 ## 7. Application Integration — wiring everything
 
@@ -96,11 +119,14 @@ time. **FN priority:** high-risk reports must never be missed or silently
 downgraded.
 → `docs/evaluation-monitoring.md`
 
-Implemented in MVP: pytest guards (`backend/tests/test_api.py`) —
+Implemented in MVP: pytest guards (`backend/tests/test_api.py`, 24 tests) —
 SOS ack < 5 s, SOS never downgraded by AI, AI escalation advisory-only,
 review-queue contents, cluster + split reversibility, correction keeps raw
 immutable, audit lifecycle (`create` → `ai_classify` → `cluster`/`dispatch`/
-`correct`/`split`, all stamped `model_version='heuristic-v2'`).
+`dispatch_auto`/`correct`/`split`, all stamped `model_version='heuristic-v2'`),
+volunteer registry + role filter, dispatch-auto matching (mocked Laya),
+Laya-down → heuristic fallback, low-confidence → fallback, ID→EN
+pre-translator coverage.
 
 ## 9. Responsible AI & Guardrails — protecting users
 

@@ -71,11 +71,26 @@ Every acceptance criterion is traceable end to end:
 | C2 Sub-5-second ack | Hot path has no AI node | `main.py` persist-first, `X-Process-Time-Ms` | Wall-clock CI test, p95 alert at 4 s |
 | C3 Acknowledged ≠ dispatched | `reported → acknowledged → broadcast → dispatched → resolved` | `StatusTimeline` stepper widget | `test_dispatch_transitions_status` |
 | C4 AI never blocks SOS | AI as `BackgroundTasks` only | `ai_pipeline.py` async workers | SOS completes with no model loaded |
+| AI-1 Urgency advisory-only | AI suggests, never auto-applies; SOS keeps P1 fail-safe | `infer_urgency` + `needs_review` flag | `test_sos_never_downgraded_by_ai`, `test_ai_escalation_is_advisory_only` |
+| AI-2 Clustering reversible | DBSCAN-lite (150 m + 30 min + category), backfill | `cluster()` + `POST …/split` undo | `test_cluster_and_split_clear_cluster` |
+| AI-3 Human review queue | Low-confidence / pending-escalation inbox | `GET /api/review-queue` + coordinator sheet UI | `test_review_queue_lists_low_conf_ticket` |
+| AI-4 Audit accountability | Immutable lifecycle trail (`heuristic-v2`) | `GET /api/audit` | `test_audit_trail_records_lifecycle` |
+| DISP-1 Targeted dispatch advisory | Coordinator-triggered Laya inference + heuristic fallback; manual override untouched | `dispatch-auto`, `pretranslate_id_en`, `< 0.5` gate | `test_dispatch_auto_matching_picks_right_role`, `test_laya_down_fallback`, `test_laya_low_confidence_falls_back` |
+| DISP-2 Volunteer registry integrity | Server-canonical role ids, coordinates required | `POST /api/volunteers`, `VolunteerIn` | `test_volunteer_register_and_validation`, `test_volunteer_list_and_role_filter` |
 
 ## Change control
 
-Waterfall is rigid by design. Post-deployment changes (e.g. the Apple
-liquid-glass UI reskin, commit `a811497`) are recorded as **maintenance-phase
-change requests**: scoped in writing, implemented against the frozen API
-contract, re-verified by the full CI gate, and released as a new versioned
-APK — never patched around the process.
+Waterfall is rigid by design. Post-deployment changes are recorded as
+**maintenance-phase change requests**: scoped in writing, implemented
+against the frozen API contract (or with an explicitly versioned contract
+extension), re-verified by the full CI gate, and released as a new
+versioned APK — never patched around the process.
+
+| # | Change request | Commit | Scope | Re-verification |
+|---|----------------|--------|-------|-----------------|
+| CR-1 | Apple liquid-glass UI reskin | `a811497` (released v1.0.1) | UI-only: theme tokens + glass kit, 5 screens reskinned; API contract frozen | CI `36966554133` / `36966554085` green (7/7 + 5/5), analyze clean |
+| CR-2 | Map-centric liquid-glass shell | `6967487` (released v1.1.0) | UI-only: `AppShell` + floating glass tab bar, map-as-home, `LiquidGlass` material, in-app server setting; APIs unchanged, CI-baked `API_BASE=http://100.89.180.23:8791` | CI `36981431135` / `36981431212` green, analyze clean |
+| CR-3 | AI triage heuristic-v2 | `65409f0` (released v1.2.0) | Contract extension: advisory-only `infer_urgency`, DBSCAN-lite `cluster()`, `review-queue`/`correct`/`split`/`audit` endpoints (`heuristic-v2`); visible AI UI (`AiTriageBadges`) | CI `36985531449` / `36985531411` green (13/13 incl. 6 AI guards + 5/5), analyze clean |
+| CR-4 | Laya AI dispatch + volunteer registry | `4a94fb6` | Contract extension: `POST /api/volunteers`, `GET /api/volunteers?role=`, `POST …/dispatch-auto` (Laya `:8010` + heuristic fallback, role-overlap nearest-first matching, `dispatch_auto` audit + WS frame) | 7 new pytest guards (20/20), mocked-Laya matching test |
+| CR-5 | Role onboarding + targeted-invite UX | `084cb07` (+ analyze fixes `7e3e1e7`/`cd581b2`) | Client-only: first-launch `RolePickerScreen` + `_LaunchGate`, local-first `VolunteerStore`, SPECIAL-INVITE alerts UX (`invite_cards.dart`), `Incident`/`Volunteer` invite metadata | 7 new Flutter tests (`invite_test.dart`), analyze clean |
+| CR-6 | Laya ID→EN pre-translator + confidence gate | `a91d104` | `pretranslate_id_en` gloss (~50 terms, word-boundary aware) + `< 0.5` confidence gate → heuristic fallback; heuristic runs on original Indonesian | 5 new pytest guards (24/24 total), pre-translation capture test |

@@ -7,7 +7,8 @@ parent: Reference
 
 # API Contract (FastAPI — client-agnostic)
 
-Base URL: emulator `http://10.0.2.2:8000`, device-on-LAN `http://<host>:8000`.
+Base URL: emulator `http://10.0.2.2:8000`, device-on-LAN `http://<host>:8000`,
+live supervised backend `http://100.89.180.23:8791` (Tailnet, `:8791`).
 Auth (production): `Authorization: Bearer <JWT>`; RBAC roles
 `reporter / volunteer / coordinator` (spec station 6). MVP skeleton leaves
 auth as a gateway TODO — endpoints are deterministic and permission-checked
@@ -50,6 +51,31 @@ params — radius, `since`, urgency filter).
 `acknowledged|broadcast → dispatched`. Records `dispatched_to`, emits
 `incident.dispatched` on WS.
 
+## `POST /api/volunteers` → 201
+
+Register (or update) a volunteer: `name*`, `phone`, `roles*`
+(`medical|fire|rescue|security|driver|coordinator` — 422 on invalid),
+`skills`, `latitude*`, `longitude*` (coordinates required; the Flutter
+client falls back to Jakarta `-6.2, 106.8` when it has no fix). Dedupes
+roles, returns the stored volunteer incl. generated `id`. Writes audit
+action `volunteer_register`.
+
+## `GET /api/volunteers?role=&category=` → 200
+
+List volunteers; optional `?role=` filter (`category` is an alias).
+
+## `POST /api/incidents/{id}/dispatch-auto` → 200
+
+Laya AI dispatch (see `ai-stations.md` station 6): infers
+`required_roles` + `headcount` (Laya agent on `:8010`, ID→EN
+pre-translated report, confidence gate `< 0.5` → heuristic fallback —
+never 5xxes), matches registered volunteers by role overlap
+(nearest-first by haversine, capped at `headcount`), stores
+`required_roles` + `invited[]` + `dispatch_source` (`laya|fallback`) on
+the ticket, writes audit action `dispatch_auto`, broadcasts WS
+`incident.dispatch_auto`. Manual `POST …/dispatch` override is
+untouched. 404 for unknown id.
+
 ## `GET /api/review-queue` → 200
 
 Coordinator triage inbox: tickets with `needs_review: true` (AI confidence
@@ -73,7 +99,8 @@ Returns the updated ticket; 404 for unknown id.
 
 Immutable audit trail (spec station 9): `[{ts, action, incident_id,
 model_version, detail}]`. Actions: `create`, `ai_classify`, `cluster`,
-`dispatch`, `correct`, `split`; `model_version` is `heuristic-v2`.
+`dispatch`, `dispatch_auto`, `volunteer_register`, `correct`, `split`;
+`model_version` is `heuristic-v2`.
 Without `incident_id` returns the full log.
 
 ## `GET /api/eta?from_lat&from_lng&to_lat&to_lng` → 200
@@ -88,7 +115,7 @@ whether the ETA is routed or a labelled fallback estimate.
 ## `WS /ws/alerts`
 
 Server frames (JSON): `hello`, `incident.sos`, `incident.created`,
-`incident.ai_updated`, `incident.dispatched`. Frame shape:
+`incident.ai_updated`, `incident.dispatched`, `incident.dispatch_auto`. Frame shape:
 
 ```json
 {"type": "incident.dispatched", "id": "abc123", "title": "SOS",
@@ -107,5 +134,5 @@ backoff + REST re-sync (`GET /api/incidents`) on flaky networks (spec §3).
 reporter_name, urgency (P1–P4), urgency_source, status
 (reported|acknowledged|broadcast|dispatched|resolved), ai_category,
 ai_confidence, ai_suggested_urgency, ai_urgency_conf, needs_review,
-cluster_id, created_at`.
+cluster_id, required_roles, invited, dispatch_source, reason, created_at`.
 Raw report fields are immutable after creation; only metadata + status change.
