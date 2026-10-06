@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../models/incident.dart';
+import '../models/volunteer.dart';
 import 'app_config.dart';
 
 /// HTTP client for the Commencys FastAPI backend (see docs/api-contract.md).
@@ -166,6 +167,46 @@ class ApiClient {
     }
     final List<dynamic> data = jsonDecode(res.body) as List<dynamic>;
     return data.map((e) => e as Map<String, dynamic>).toList();
+  }
+
+  /// Register (or update) this device as a volunteer.
+  ///
+  /// Contract: POST /api/volunteers
+  /// `{name, roles:[medical|fire|rescue|security|driver|coordinator],
+  /// skills:[], latitude, longitude}` → 201 `{id, ...}`.
+  /// Backend [VolunteerIn] requires coordinates, so callers fall back to
+  /// the Jakarta area pin when the device has no fix yet.
+  static const defaultLatitude = -6.2;
+  static const defaultLongitude = 106.8;
+
+  Future<Volunteer> registerVolunteer({
+    required String name,
+    required List<String> roles,
+    List<String> skills = const [],
+    double? latitude,
+    double? longitude,
+  }) async {
+    final res = await _client
+        .post(
+          Uri.parse('$baseUrl/api/volunteers'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'name': name,
+            'roles': roles,
+            'skills': skills,
+            'latitude': latitude ?? defaultLatitude,
+            'longitude': longitude ?? defaultLongitude,
+          }),
+        )
+        .timeout(requestTimeout);
+    if (res.statusCode != 200 && res.statusCode != 201) {
+      throw Exception(
+        'Failed to register volunteer (${res.statusCode})',
+      );
+    }
+    return Volunteer.fromJson(
+      jsonDecode(res.body) as Map<String, dynamic>,
+    );
   }
 
   void dispose() => _client.close();

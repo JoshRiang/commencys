@@ -171,6 +171,15 @@ class HomeScreen extends StatelessWidget {
                           Navigator.pushNamed(context, '/alerts'),
                     ),
                     _ActionCard(
+                      icon: Icons.badge_outlined,
+                      title: 'My roles',
+                      subtitle: 'Edit what you cover',
+                      tint: const Color(0xFFF0E9FD),
+                      iconColor: const Color(0xFF7C3AED),
+                      onTap: () =>
+                          Navigator.pushNamed(context, '/roles'),
+                    ),
+                    _ActionCard(
                       icon: Icons.sos_rounded,
                       title: 'SOS mode',
                       subtitle: 'Full-screen SOS',

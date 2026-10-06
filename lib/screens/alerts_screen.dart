@@ -3,10 +3,12 @@ import 'package:intl/intl.dart';
 
 import '../models/incident.dart';
 import '../services/api_client.dart';
+import '../services/volunteer_store.dart';
 import '../services/websocket_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/ai_badges.dart';
 import '../widgets/glass.dart';
+import '../widgets/invite_cards.dart';
 
 /// Alerts as a glass timeline list over a soft gradient backdrop.
 /// Live frames arrive on [CoordinationSocket.messages] (`/ws/alerts`);
@@ -25,6 +27,8 @@ class _AlertsScreenState extends State<AlertsScreen> {
   bool _loading = true;
   bool _live = false;
   bool _reviewOnly = false;
+  List<String> _myRoles = [];
+  bool _invitesOnly = false;
 
   @override
   void initState() {
@@ -34,13 +38,21 @@ class _AlertsScreenState extends State<AlertsScreen> {
     _socket.messages.listen((msg) {
       if (!mounted) return;
       setState(() => _live = true);
+      // Push-style card: when a live frame carries role targeting that
+      // matches this volunteer, surface it as a special invite.
+      final frameRoles = _frameRoles(msg);
+      final matched = _matchRoles(frameRoles);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             content: Text(
-                'Live update: ${msg['title'] ?? 'new alert'}')),
+                matched.isNotEmpty
+                    ? 'Special invite (${matched.join(', ')}): '
+                        '${msg['title'] ?? 'new alert'}'
+                    : 'Live update: ${msg['title'] ?? 'new alert'}')),
       );
       _load(silent: true);
     });
+    _loadRoles();
     _load();
   }
 
@@ -61,6 +73,32 @@ class _AlertsScreenState extends State<AlertsScreen> {
     _api.dispose();
     _socket.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadRoles() async {
+    final roles = await VolunteerStore.roles();
+    if (mounted) setState(() => _myRoles = roles);
+  }
+
+  List<String> _matchRoles(List<String> requiredRoles) {
+    final mine = _myRoles.map((r) => r.toLowerCase()).toSet();
+    return requiredRoles
+        .where((r) => mine.contains(r.toLowerCase()))
+        .toList();
+  }
+
+  /// `required_roles` attached to a live WS frame (nested or top-level).
+  static List<String> _frameRoles(Map<String, dynamic> msg) {
+    for (final key in ['required_roles', 'requiredRoles']) {
+      final v = msg[key];
+      if (v is List) return v.map((e) => e.toString()).toList();
+    }
+    final incident = msg['incident'];
+    if (incident is Map<String, dynamic>) {
+      final v = incident['required_roles'];
+      if (v is List) return v.map((e) => e.toString()).toList();
+    }
+    return const [];
   }
 
   Future<void> _openCoordinator(Incident incident) async {
@@ -134,9 +172,30 @@ class _AlertsScreenState extends State<AlertsScreen> {
   @override
   Widget build(BuildContext context) {
     final reviewCount = _incidents.where((e) => e.needsReview).length;
-    final visible = _reviewOnly
+    var visible = _reviewOnly
         ? _incidents.where((e) => e.needsReview).toList()
-        : _incidents;
+        : List<Incident>.from(_incidents);
+    // Special invites first, then the rest (normal incidents read dimmed).
+    final matchedOf = <String, List<String>>{};
+    for (final e in visible) {
+      matchedOf[e.id] = _matchRoles(e.requiredRoles);
+    }
+    final inviteCount =
+        matchedOf.values.where((m) => m.isNotEmpty).length;
+    if (_invitesOnly) {
+      visible = visible
+          .where((e) => matchedOf[e.id]?.isNotEmpty == true)
+          .toList();
+    } else {
+      visible.sort((a, b) {
+        final am = matchedOf[a.id]?.isNotEmpty == true ? 0 : 1;
+        final bm = matchedOf[b.id]?.isNotEmpty == true ? 0 : 1;
+        if (am != bm) return am - bm;
+        return b.createdAt.compareTo(a.createdAt);
+      });
+    }
+    final headerCards = (reviewCount > 0 ? 1 : 0) +
+        (inviteCount > 0 && _myRoles.isNotEmpty ? 1 : 0);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Alerts'),
@@ -179,9 +238,20 @@ class _AlertsScreenState extends State<AlertsScreen> {
                   child: ListView.builder(
                     padding:
                         const EdgeInsets.fromLTRB(16, 4, 16, 24),
-                    itemCount: visible.length + (reviewCount > 0 ? 1 : 0),
+                    itemCount: visible.length + headerCards,
                     itemBuilder: (context, i) {
-                      if (reviewCount > 0 && i == 0) {
+                      var h = i;
+                      if (inviteCount > 0 && _myRoles.isNotEmpty) {
+                        if (h == 0) {
+                          return SpecialInviteBanner(
+                            count: inviteCount,
+                            onTap: () => setState(() =>
+                                _invitesOnly = !_invitesOnly),
+                          );
+                        }
+                        h -= 1;
+                      }
+                      if (reviewCount > 0 && h == 0) {
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 10),
                           child: LiquidGlass(
@@ -219,13 +289,83 @@ class _AlertsScreenState extends State<AlertsScreen> {
                           ),
                         );
                       }
-                      final idx = reviewCount > 0 ? i - 1 : i;
+                      final idx = reviewCount > 0 ? h - 1 : h;
                       final incident = visible[idx];
+                      final matched = matchedOf[incident.id] ?? const [];
+                      final invited = matched.isNotEmpty;
                       final sev =
                           AppColors.severityFor(incident.severity.name);
                       final sevSoft = AppColors.severitySoftFor(
                           incident.severity.name);
                       final last = idx == visible.length - 1;
+                      // Normal incidents read dimmed when the user has
+                      // special invites waiting — the eye goes to the call.
+                      final card = LiquidGlass(
+                        radius: 22,
+                        blur: 26,
+                        tint: invited ? 1.0 : 0.72,
+                        padding: const EdgeInsets.all(14),
+                        child: Row(
+                          crossAxisAlignment:
+                              CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  if (invited) ...[
+                                    SpecialInviteBadge(
+                                      matched: matched,
+                                    ),
+                                    const SizedBox(height: 6),
+                                  ],
+                                  Text(
+                                    incident.title,
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w800,
+                                      color: invited
+                                          ? AppColors.ink
+                                          : AppColors.secondary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    '${incident.category} • ${incident.status.name} • ${DateFormat('dd MMM HH:mm').format(incident.createdAt)}',
+                                    style: const TextStyle(
+                                      color:
+                                          AppColors.secondary,
+                                      fontSize: 12.5,
+                                    ),
+                                  ),
+                                  if (invited) ...[
+                                    const SizedBox(height: 8),
+                                    InviteWhyLine(
+                                      incident: incident,
+                                      matched: matched,
+                                    ),
+                                  ],
+                                  const SizedBox(height: 6),
+                                  AiTriageBadges(
+                                    incident: incident,
+                                    onClusterTap: () =>
+                                        _openCoordinator(
+                                            incident),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Pill(
+                              label: incident.severity.name
+                                  .toUpperCase(),
+                              bg: sevSoft,
+                              fg: sev,
+                            ),
+                          ],
+                        ),
+                      );
                       return IntrinsicHeight(
                         child: Row(
                           crossAxisAlignment:
@@ -272,61 +412,37 @@ class _AlertsScreenState extends State<AlertsScreen> {
                               child: Padding(
                                 padding: EdgeInsets.only(
                                     bottom: last ? 0 : 10),
-                                child: LiquidGlass(
-                                  radius: 22,
-                                  blur: 26,
-                                  padding:
-                                      const EdgeInsets.all(14),
-                                  child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment
-                                                  .start,
-                                          children: [
-                                            Text(
-                                              incident.title,
-                                              style:
-                                                  const TextStyle(
-                                                fontSize: 15,
-                                                fontWeight:
-                                                    FontWeight.w800,
-                                              ),
-                                            ),
-                                            const SizedBox(
-                                                height: 3),
-                                            Text(
-                                              '${incident.category} • ${incident.status.name} • ${DateFormat('dd MMM HH:mm').format(incident.createdAt)}',
-                                              style:
-                                                  const TextStyle(
-                                                color: AppColors
-                                                    .secondary,
-                                                fontSize: 12.5,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 6),
-                                            AiTriageBadges(
-                                              incident: incident,
-                                              onClusterTap: () =>
-                                                  _openCoordinator(
-                                                      incident),
+                                child: invited
+                                    ? Container(
+                                        decoration:
+                                            BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(
+                                                  22),
+                                          border: Border.all(
+                                            color: AppColors.accent
+                                                .withValues(
+                                                    alpha: 0.55),
+                                            width: 1.4,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: AppColors.accent
+                                                  .withValues(
+                                                      alpha:
+                                                          0.18),
+                                              blurRadius: 18,
+                                              offset: const Offset(
+                                                  0, 6),
                                             ),
                                           ],
                                         ),
+                                        child: card,
+                                      )
+                                    : Opacity(
+                                        opacity: 0.62,
+                                        child: card,
                                       ),
-                                      const SizedBox(width: 8),
-                                      Pill(
-                                        label: incident.severity.name
-                                            .toUpperCase(),
-                                        bg: sevSoft,
-                                        fg: sev,
-                                      ),
-                                    ],
-                                  ),
-                                ),
                               ),
                             ),
                           ],

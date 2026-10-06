@@ -31,6 +31,12 @@ class Incident {
   final DateTime createdAt;
   final String reporterName;
 
+  /// Targeted-invite metadata (dispatch-auto / WS frames). Empty when the
+  /// backend did not attach role targeting — every incident then shows
+  /// as a normal broadcast.
+  final List<String> requiredRoles;
+  final String? inviteReason;
+
   const Incident({
     required this.id,
     required this.title,
@@ -51,6 +57,8 @@ class Incident {
     this.aiUrgencyConf,
     required this.createdAt,
     required this.reporterName,
+    this.requiredRoles = const [],
+    this.inviteReason,
   });
 
   static IncidentUrgency _urgencyFrom(String? v) {
@@ -95,7 +103,20 @@ class Incident {
       createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '') ??
           DateTime.now(),
       reporterName: json['reporter_name']?.toString() ?? 'Anonymous',
+      requiredRoles: _roleList(json['required_roles']),
+      inviteReason:
+          json['reason']?.toString() ?? json['invite_reason']?.toString(),
     );
+  }
+
+  /// `required_roles` arrives as a JSON list; be lenient to CSV strings
+  /// and null so older backends keep parsing.
+  static List<String> _roleList(dynamic v) {
+    if (v is List) return v.map((e) => e.toString()).toList();
+    if (v is String && v.isNotEmpty) {
+      return v.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    }
+    return const [];
   }
 
   Map<String, dynamic> toJson() {
@@ -119,8 +140,22 @@ class Incident {
       'ai_urgency_conf': aiUrgencyConf,
       'created_at': createdAt.toIso8601String(),
       'reporter_name': reporterName,
+      'required_roles': requiredRoles,
+      if (inviteReason != null) 'reason': inviteReason,
     };
   }
+
+  /// Roles of [myRoles] that this incident calls for (case-insensitive).
+  List<String> matchedRoles(List<String> myRoles) {
+    final mine = myRoles.map((r) => r.toLowerCase()).toSet();
+    return requiredRoles
+        .where((r) => mine.contains(r.toLowerCase()))
+        .toList();
+  }
+
+  /// True when this incident specially invites a volunteer with [myRoles].
+  bool isSpecialInviteFor(List<String> myRoles) =>
+      matchedRoles(myRoles).isNotEmpty;
 
   Incident copyWith({IncidentStatus? status, IncidentSeverity? severity}) {
     return Incident(
@@ -143,6 +178,8 @@ class Incident {
       aiUrgencyConf: aiUrgencyConf,
       createdAt: createdAt,
       reporterName: reporterName,
+      requiredRoles: requiredRoles,
+      inviteReason: inviteReason,
     );
   }
 }
