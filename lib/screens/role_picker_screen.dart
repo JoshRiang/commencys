@@ -39,8 +39,8 @@ final _roleMeta = <String, (String, IconData, Color, Color)>{
   'fire': (
     'Fire',
     Icons.local_fire_department_rounded,
-    Color(0xFFF97316),
-    Color(0xFFFFEDD5),
+    const Color(0xFFF97316),
+    const Color(0xFFFFEDD5),
   ),
   'rescue': (
     'Rescue',
@@ -51,8 +51,8 @@ final _roleMeta = <String, (String, IconData, Color, Color)>{
   'security': (
     'Security',
     Icons.shield_outlined,
-    Color(0xFF7C3AED),
-    Color(0xFFF0E9FD),
+    const Color(0xFF7C3AED),
+    const Color(0xFFF0E9FD),
   ),
   'driver': (
     'Driver',
@@ -63,7 +63,7 @@ final _roleMeta = <String, (String, IconData, Color, Color)>{
   'coordinator': (
     'Coordinator',
     Icons.hub_outlined,
-    Color(0xFFB45309),
+    const Color(0xFFB45309),
     AppColors.warningSoft,
   ),
 };
