@@ -81,6 +81,23 @@ negatives (see `evaluation-monitoring.md`).
 3. **Correction:** coordinator edits label / splits cluster → metadata-only
    update → audit row → WS update.
 
+## UML diagrams (grounded — normative `.mmd`, rendered `.png`)
+
+Sumber mermaid adalah normatif; PNG hanya ekspor kenyamanan
+(di-render dengan `mmdc`, `docs/uml/*.mmd` → `docs/uml/*.png`).
+
+| Diagram | Source | Render | Grounding |
+|---|---|---|---|
+| Use case — Warga SOS, Relawan roles, Koordinator triase + dispatch-auto | `docs/uml/use-case.mmd` | `docs/uml/use-case.png` | FR-1–FR-8 (`01-analysis.md`), `api-contract.md`, `main.py`, `lib/screens/` |
+| Activity — SOS → ack < 5 s → broadcast → AI async → triase → dispatch | `docs/uml/activity-sos-dispatch.mmd` | `docs/uml/activity-sos-dispatch.png` | `main.py send_sos` + `_enrich`, `ai_pipeline.py`, `laya_dispatch.py` |
+| Sequence — SOS → WS → classify/cluster → dispatch-auto (Laya) → dispatch + ETA | `docs/uml/sequence-sos-dispatch.mmd` | `docs/uml/sequence-sos-dispatch.png` | `main.py`, `ai_pipeline.py`, `dispatch_incident`, `api_client.dart`, WS frames |
+| Class — backend Pydantic + modul layanan + model Flutter + tabel PostGIS | `docs/uml/class-diagram.mmd` | `docs/uml/class-diagram.png` | `models.py`, `main.py`, `ai_pipeline.py`, `laya_dispatch.py`, `lib/models/`, `lib/services/`, `db-schema.md` |
+
+![Use case](uml/use-case.png)
+![Activity SOS → dispatch](uml/activity-sos-dispatch.png)
+![Sequence SOS → dispatch](uml/sequence-sos-dispatch.png)
+![Class diagram](uml/class-diagram.png)
+
 ## Component map (repo)
 
 | Component | Path | Spec role |

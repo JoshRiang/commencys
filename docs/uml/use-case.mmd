@@ -1,0 +1,46 @@
+%% Diagram Use Case — Commencys (Warga SOS, Relawan roles, Koordinator triase + dispatch-auto)
+%% Grounded: docs/01-analysis.md FR-1..FR-8, docs/api-contract.md,
+%% backend/app/main.py, lib/screens/*.dart, lib/services/api_client.dart
+flowchart LR
+    W["🧍 Warga — reporter"]
+    V["🧍 Relawan — medical · fire · rescue · security · driver · coordinator"]
+    K["🧍 Koordinator"]
+
+    subgraph SYS["Commencys — Flutter + FastAPI :8791"]
+        direction TB
+        UC1(["UC-1 SOS satu ketuk<br/>GPS + accuracy_m → POST /api/sos → 201 acknowledged (P1)"])
+        UC2(["UC-2 Pin manual<br/>geser pin saat GPS tak akurat"])
+        UC3(["UC-3 Laporan lengkap<br/>judul + kategori + severity → POST /api/incidents"])
+        UC4(["UC-4 Peta + feed siaga live<br/>GET /api/incidents + WS /ws/alerts, reconnect + REST fallback"])
+        UC5(["UC-5 Registrasi relawan<br/>nama + roles + koordinat → POST /api/volunteers"])
+        UC6(["UC-6 Terima dispatch<br/>accept → POST .../dispatch → dispatched + ETA OSRM"])
+        UC7(["UC-7 Dispatch otomatis<br/>POST .../dispatch-auto → Laya roles + headcount → invite terdekat"])
+        UC8(["UC-8 Triase koreksi<br/>POST .../correct + .../split — metadata-only, raw imutabel"])
+        UC9(["UC-9 Antrian review<br/>GET /api/review-queue — conf AI di bawah 0.65"])
+        UC10(["UC-10 Audit trail<br/>GET /api/audit — create, ai_classify, cluster, dispatch, correct, split"])
+    end
+
+    LAYA["⚙️ Laya :8010 — inferensi peran"]
+    OSRM["⚙️ OSRM — rute + ETA"]
+    AIW["⚙️ IndoBERT + DBSCAN — async, tak blokir SOS"]
+    NOTE["⚠️ SOS = P1 hingga triase — AI tak pernah downgrade otomatis"]
+
+    W --> UC1
+    W --> UC2
+    W --> UC3
+    W --> UC4
+    V --> UC4
+    V --> UC5
+    V --> UC6
+    K --> UC4
+    K --> UC7
+    K --> UC8
+    K --> UC9
+    K --> UC10
+    UC2 -.->|"extend"| UC1
+    UC3 -.->|"extend"| UC1
+    UC9 -.->|"include"| UC8
+    UC7 -.->|"include"| LAYA
+    UC6 -.->|"include"| OSRM
+    UC1 -.->|"async enrich"| AIW
+    NOTE -.-> UC1

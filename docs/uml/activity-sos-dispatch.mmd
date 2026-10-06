@@ -1,0 +1,70 @@
+%% Diagram Activity — Alur SOS ke dispatch (golden minutes, ack di bawah 5 detik)
+%% Grounded: docs/02-design.md Key flows, backend/app/main.py send_sos dan _enrich,
+%% backend/app/ai_pipeline.py, backend/app/laya_dispatch.py, docs/api-contract.md
+flowchart TB
+    S((● Warga tekan SOS))
+
+    subgraph APP["📱 Flutter — SosScreen + LocationService"]
+        direction TB
+        A_GPS["Ambil GPS + accuracy_m"]
+        A_Q{"GPS akurat?"}
+        A_PIN["Geser pin manual di peta"]
+        A_POST["POST /api/sos — lat, lng, accuracy_m, deskripsi"]
+    end
+
+    subgraph API["⚡ FastAPI :8791 — main.py send_sos"]
+        direction TB
+        F_SAVE["Simpan tiket — status acknowledged, urgency P1, source sos_default_pending_triage"]
+        F_AUD1["Audit create"]
+        F_ACK["201 acknowledged + header X-SOS-Budget-S 5.0 — di bawah 5 detik"]
+        F_WS1["Broadcast WS incident.sos via create_task — tanpa tunggu AI"]
+        F_BG["BackgroundTask _enrich ticket_id"]
+    end
+
+    subgraph AI["🤖 AI async — ai_pipeline classify + cluster"]
+        direction TB
+        C_CLS["classify — ai_category + confidence"]
+        C_Q{"confidence min 0.65?"}
+        C_LOW["needs_review true — masuk antrean koordinator"]
+        C_OK["Terapkan metadata ai_* — audit ai_classify"]
+        C_CLU["cluster — radius 150 m + jendela 30 mnt + kategori kompatibel"]
+        C_WS["Broadcast WS incident.ai_updated — audit cluster"]
+    end
+
+    subgraph KOR["🧭 Koordinator — triase"]
+        direction TB
+        K_Q{"Perlu tindak lanjut?"}
+        K_COR["POST .../correct — urgency_source coordinator_corrected"]
+        K_SPLIT["POST .../split — lepas cluster_id, false-merge reversibel"]
+        K_DONE["Triase tercatat — audit correct atau split"]
+        K_AUTO["POST .../dispatch-auto — Laya infer required_roles + headcount, conf di bawah 0.5 fallback heuristik"]
+        K_MATCH["Cocokkan relawan — irisan peran + haversine terdekat — WS incident.dispatch_auto"]
+    end
+
+    subgraph REL["🚑 Relawan"]
+        direction TB
+        R_Q{"Terima undangan?"}
+        R_ACC["POST .../dispatch — status dispatched + dispatched_to + audit dispatch"]
+        R_ETA["GET /api/eta — OSRM rute, stub bila offline — WS incident.dispatched"]
+        R_WAIT["Tetap broadcast — menunggu relawan"]
+    end
+
+    E1((◉ dispatched + ETA — bantuan jalan))
+    E2((◉ broadcast — siaga))
+
+    S --> A_GPS --> A_Q
+    A_Q -- Tidak --> A_PIN --> A_POST
+    A_Q -- Ya --> A_POST
+    A_POST --> F_SAVE --> F_AUD1 --> F_ACK
+    F_ACK --> F_WS1
+    F_ACK --> F_BG
+    F_BG --> C_CLS --> C_Q
+    C_Q -- "di bawah 0.65" --> C_LOW --> C_CLU
+    C_Q -- "min 0.65" --> C_OK --> C_CLU
+    C_CLU --> C_WS --> K_Q
+    K_Q -- koreksi --> K_COR --> K_DONE
+    K_Q -- "false merge" --> K_SPLIT --> K_DONE
+    K_DONE -- dispatch-auto --> K_AUTO --> K_MATCH --> R_Q
+    K_DONE -- manual --> R_Q
+    R_Q -- Ya --> R_ACC --> R_ETA --> E1
+    R_Q -- "Belum ada" --> R_WAIT --> E2

@@ -1,0 +1,289 @@
+%% Diagram Class — Commencys backend Pydantic + modul layanan + model Flutter + tabel PostGIS
+%% Grounded: backend/app/models.py, backend/app/main.py, backend/app/ai_pipeline.py,
+%% backend/app/laya_dispatch.py, lib/models/incident.dart, lib/models/volunteer.dart,
+%% lib/services/api_client.dart, lib/services/websocket_service.dart,
+%% lib/services/volunteer_store.dart, lib/services/location_service.dart, docs/db-schema.md
+classDiagram
+    note "Backend = backend/app/*.py · Flutter = lib/*.dart · DB = docs/db-schema.md"
+
+    class BeCategory {
+        <<enumeration>>
+        MEDICAL
+        ACCIDENT
+        FIRE
+        SECURITY
+        FACILITY
+        OTHER
+    }
+    class BeUrgency {
+        <<enumeration>>
+        P1
+        P2
+        P3
+        P4
+    }
+    class BeStatus {
+        <<enumeration>>
+        REPORTED
+        ACKNOWLEDGED
+        BROADCAST
+        DISPATCHED
+        RESOLVED
+    }
+    class BeSosIn {
+        +float latitude
+        +float longitude
+        +float accuracy_m
+        +String description
+        +String photo_url
+        +String reporter_name
+    }
+    class BeIncidentIn {
+        +String title
+        +String description
+        +BeCategory category
+        +float latitude
+        +float longitude
+        +float accuracy_m
+        +String reporter_name
+    }
+    class BeCorrectIn {
+        +String ai_category
+        +String urgency
+    }
+    class BeVolunteerIn {
+        +String name
+        +String phone
+        +List~String~ roles
+        +List~String~ skills
+        +float latitude
+        +float longitude
+    }
+    class BeVolunteer {
+        +String id
+        +String name
+        +String phone
+        +List~String~ roles
+        +List~String~ skills
+        +float latitude
+        +float longitude
+        +String created_at
+    }
+    class BeIncident {
+        +String id
+        +String title
+        +String description
+        +String category
+        +float latitude
+        +float longitude
+        +float accuracy_m
+        +String reporter_name
+        +String urgency
+        +String urgency_source
+        +String status
+        +String ai_category
+        +float ai_confidence
+        +bool needs_review
+        +String cluster_id
+        +String ai_suggested_urgency
+        +float ai_urgency_conf
+        +String created_at
+        +to_ws_frame() dict
+    }
+    class BeApi {
+        <<FastAPI main.py>>
+        +SOS_BUDGET_S
+        +_store
+        +_volunteers
+        +_audit_log
+        +_sockets
+        +send_sos(body) JSONResponse
+        +create_incident(body) JSONResponse
+        +dispatch(ticket_id, volunteer) JSONResponse
+        +register_volunteer(body) JSONResponse
+        +list_volunteers(role, category) list
+        +dispatch_auto(ticket_id) JSONResponse
+        +review_queue() list
+        +correct(ticket_id, body) JSONResponse
+        +split_cluster(ticket_id) JSONResponse
+        +audit(incident_id) list
+        +eta(from_lat, from_lng, to_lat, to_lng) dict
+        +alerts(ws) void
+        +_enrich(ticket_id) void
+        +_broadcast(frame) void
+        +_match_volunteers(ticket, roles, n) list
+        +ticket_to_frame(ticket, event) dict
+    }
+    class BeAiPipeline {
+        <<module ai_pipeline.py>>
+        +MODEL_VERSION
+        +CONFIDENCE_THRESHOLD
+        +CLUSTER_EPS_M
+        +CLUSTER_WINDOW_MIN
+        +classify(ticket) dict
+        +cluster(ticket, neighbours) list
+        +infer_urgency(text, category, reporter_urgency, is_sos) dict
+        +heuristic_scores(text) dict
+        +haversine_m(a_lat, a_lng, b_lat, b_lng) float
+    }
+    class BeLayaDispatch {
+        <<module laya_dispatch.py>>
+        +VALID_ROLES
+        +ROLE_BUNDLES
+        +CATEGORY_ROLES
+        +LAYA_BASE_URL
+        +dispatch_incident(report) dict
+        +heuristic_dispatch(report) dict
+        +pretranslate_id_en(report) tuple
+        +dispatch_questions() dict
+    }
+    class DbIncidents {
+        <<table PostGIS>>
+        +TEXT id PK
+        +TEXT title
+        +TEXT description
+        +TEXT category
+        +GEOGRAPHY geom
+        +FLOAT accuracy_m
+        +TEXT reporter_ref
+        +CHAR urgency
+        +TEXT urgency_source
+        +TEXT status
+        +TEXT ai_category
+        +FLOAT ai_confidence
+        +BOOL needs_review
+        +TEXT cluster_id
+        +TEXT dispatched_to
+        +TIMESTAMPTZ created_at
+        +TIMESTAMPTZ updated_at
+    }
+    class DbAuditLog {
+        <<table append-only>>
+        +BIGSERIAL seq PK
+        +TEXT incident_id FK
+        +TEXT actor
+        +TEXT action
+        +JSONB detail
+        +TIMESTAMPTZ at
+    }
+    class FlIncidentStatus {
+        <<enumeration>>
+        reported
+        acknowledged
+        broadcast
+        dispatched
+        resolved
+    }
+    class FlIncidentUrgency {
+        <<enumeration>>
+        p1
+        p2
+        p3
+        p4
+    }
+    class FlIncidentSeverity {
+        <<enumeration>>
+        low
+        medium
+        high
+        critical
+    }
+    class FlIncident {
+        +String id
+        +String title
+        +String description
+        +String category
+        +double latitude
+        +double longitude
+        +double accuracyM
+        +FlIncidentSeverity severity
+        +FlIncidentUrgency urgency
+        +String urgencySource
+        +FlIncidentStatus status
+        +String aiCategory
+        +double aiConfidence
+        +bool needsReview
+        +String clusterId
+        +List~String~ requiredRoles
+        +String inviteReason
+        +fromJson(json) FlIncident
+        +toJson() map
+        +matchedRoles(myRoles) list
+        +copyWith(status, severity) FlIncident
+    }
+    class FlVolunteer {
+        +String id
+        +String name
+        +List~String~ roles
+        +List~String~ skills
+        +double latitude
+        +double longitude
+        +fromJson(json) FlVolunteer
+        +toJson() map
+        +matchedRoles(requiredRoles) list
+        +copyWith() FlVolunteer
+    }
+    class FlApiClient {
+        +String baseUrl
+        +fetchIncidents() list
+        +createIncident(title, description, category, latitude, longitude) FlIncident
+        +sendSos(latitude, longitude, accuracyM, description) FlIncident
+        +dispatch(ticketId, volunteer) FlIncident
+        +fetchReviewQueue() list
+        +correctTicket(ticketId, aiCategory, urgency) FlIncident
+        +splitCluster(ticketId) FlIncident
+        +fetchAudit(ticketId) list
+        +registerVolunteer(name, roles, skills, latitude, longitude) FlVolunteer
+    }
+    class FlCoordSocket {
+        +String url
+        +connect() void
+        +send(message) void
+        +disconnect() void
+        +dispose() void
+        +messages Stream
+        +statuses Stream
+        +isConnected bool
+    }
+    class FlVolunteerStore {
+        +isOnboarded() bool
+        +load() FlVolunteer
+        +roles() list
+        +matchedRoles(requiredRoles) list
+        +save(name, roles) FlVolunteer
+        +markSynced(id) void
+    }
+    class FlLocationService {
+        +ensurePermission() bool
+        +currentPosition() Position
+        +accuracy() double
+        +positionStream() Stream
+    }
+
+    BeIncidentIn --> BeCategory : category
+    BeIncident --> BeStatus : status
+    BeIncident --> BeUrgency : urgency
+    BeVolunteerIn --> BeVolunteer : registers
+    BeApi --> BeIncident : persist _store
+    BeApi --> BeVolunteer : registry _volunteers
+    BeApi --> BeCorrectIn : triase input
+    BeApi --> BeSosIn : SOS input
+    BeApi --> BeIncidentIn : report input
+    BeApi ..> BeAiPipeline : BackgroundTask _enrich
+    BeApi ..> BeLayaDispatch : dispatch_auto
+    BeLayaDispatch ..> BeAiPipeline : heuristic fallback
+    BeIncident ..> DbIncidents : migrasi PostGIS
+    BeApi ..> DbAuditLog : _audit append
+    DbAuditLog --> DbIncidents : incident_id FK
+    FlIncident --> FlIncidentStatus : status
+    FlIncident --> FlIncidentUrgency : urgency
+    FlIncident --> FlIncidentSeverity : severity
+    FlIncident ..> BeIncident : mirrors JSON fromJson
+    FlVolunteer ..> BeVolunteer : mirrors contract
+    FlApiClient ..> FlIncident : creates parses
+    FlApiClient ..> FlVolunteer : registerVolunteer
+    FlApiClient ..> BeApi : HTTP REST
+    FlCoordSocket ..> FlIncident : frames to status
+    FlCoordSocket ..> BeApi : WS alerts
+    FlVolunteerStore ..> FlVolunteer : cache lokal
+    FlLocationService ..> FlApiClient : coords ke sendSos

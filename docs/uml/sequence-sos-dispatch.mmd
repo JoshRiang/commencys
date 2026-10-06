@@ -1,0 +1,64 @@
+%% Diagram Sequence — SOS ke ack ke broadcast ke AI async ke dispatch-auto (Laya) ke dispatch + ETA
+%% Grounded: backend/app/main.py, backend/app/ai_pipeline.py, backend/app/laya_dispatch.py,
+%% docs/api-contract.md, lib/services/api_client.dart, lib/services/websocket_service.dart
+sequenceDiagram
+    autonumber
+    participant W as Warga SosScreen
+    participant L as LocationService
+    participant C as ApiClient
+    participant F as FastAPI 8791 main
+    participant S as Store plus Audit
+    participant WS as WS alerts broadcast
+    participant AI as AI classify plus cluster
+    participant LY as Laya 8010 dispatch
+    participant K as Koordinator
+    participant V as Relawan
+
+    W->>L: currentPosition + accuracy
+    L-->>W: lat lng accuracy_m
+    W->>C: sendSos lat lng accuracy desc
+    C->>F: POST /api/sos JSON
+    F->>S: simpan tiket acknowledged P1 sos_default_pending_triage
+    S-->>F: ok
+    F->>S: audit create SOS
+    F->>WS: create_task incident.sos tanpa tunggu AI
+    F->>AI: BackgroundTask enrich ticket_id
+    F-->>C: 201 tiket + X-SOS-Budget-S 5.0
+    Note over F,C: ack di bawah 5 detik, kriteria 2
+    C-->>W: Incident acknowledged
+    WS-->>V: frame incident.sos
+    WS-->>K: frame incident.sos
+    AI->>AI: classify ai_category + confidence
+    alt confidence di bawah 0.65 atau eskalasi urgency
+        AI->>S: needs_review true + ai_triage_pending_review + audit ai_classify
+    else confidence cukup
+        AI->>S: metadata ai_* + audit ai_classify
+    end
+    AI->>AI: cluster 150m + 30 mnt + kategori kompatibel
+    AI->>S: cluster_id + audit cluster
+    AI->>WS: incident.ai_updated
+    WS-->>K: ai_updated + review-queue
+    opt koordinator koreksi
+        K->>F: POST correct urgensi atau kategori
+        F->>S: coordinator_corrected needs_review false + audit correct
+    end
+    opt koordinator split false-merge
+        K->>F: POST split
+        F->>S: cluster_id null + audit split
+    end
+    K->>F: POST dispatch-auto
+    F->>LY: POST v1 systemone report ID-EN + questions
+    alt Laya ok dan confidence min 0.5
+        LY-->>F: required_roles + headcount source laya
+    else timeout error atau conf rendah
+        LY-->>F: gagal → heuristic_dispatch source fallback
+    end
+    F->>F: match_volunteers irisan peran + haversine terdekat
+    F->>S: required_roles invited dispatch_source + audit dispatch_auto
+    F->>WS: incident.dispatch_auto
+    WS-->>V: undangan required_roles + reason
+    V->>F: POST dispatch volunteer id
+    F->>S: dispatched + dispatched_to + audit dispatch
+    F->>WS: incident.dispatched + ETA via GET api eta OSRM atau stub
+    WS-->>W: dispatched di StatusTimeline
+    WS-->>K: dispatched
