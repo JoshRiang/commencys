@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 
 import httpx
 
@@ -63,6 +64,93 @@ CATEGORIES = ["medical", "fire", "accident", "security", "facility",
 
 _URGENCY_SEVERITY = {"P1": 5, "P2": 4, "P3": 3, "P4": 2}
 _URGENCY_HEADCOUNT = {"P1": 4, "P2": 3, "P3": 2, "P4": 2}
+
+#: Indonesian -> English emergency gloss (offline, zero-dependency).
+#: Laya's English model misclassifies raw Indonesian text with low
+#: confidence (fire report -> "accident" @ 0.30), so the report is
+#: pre-translated before the /v1/systemone call. The heuristic fallback
+#: still runs on the ORIGINAL text (its keyword maps are Indonesian).
+#: Sorted longest-first at use time so multi-word phrases win.
+_ID_EN_GLOSS: dict[str, str] = {
+    # fire
+    "kebakaran besar": "large building fire",
+    "kebakaran": "fire",
+    "terbakar": "burning",
+    "asap tebal": "thick smoke",
+    "asap": "smoke",
+    "api": "flames",
+    "ledakan": "explosion",
+    # medical
+    "tidak sadarkan diri": "unconscious person",
+    "tidak sadar": "unconscious",
+    "pingsan": "fainted",
+    "jantung": "heart attack",
+    "sesak napas": "difficulty breathing",
+    "sesak": "difficulty breathing",
+    "berdarah": "bleeding heavily",
+    "pendarahan": "bleeding",
+    "luka parah": "severe injuries",
+    "luka": "injured",
+    "ambulans": "ambulance",
+    "ambulance": "ambulance",
+    "keracunan": "poisoning",
+    "tenggelam": "drowning",
+    # accident / rescue
+    "kecelakaan beruntun": "multi-vehicle pileup accident",
+    "kecelakaan": "traffic accident",
+    "tabrak lari": "hit-and-run accident",
+    "tabrak": "collision",
+    "terjebak": "trapped",
+    "tertimbun": "buried",
+    "banjir bandang": "flash flood",
+    "banjir": "flood",
+    "gempa": "earthquake",
+    "longsor": "landslide",
+    # security
+    "begal": "armed street robbery",
+    "rampok": "robbery",
+    "maling": "thief",
+    "curi": "theft",
+    "serang": "attack",
+    "tawuran": "gang brawl",
+    "penembakan": "shooting",
+    # facility
+    "bocor gas": "gas leak",
+    "bocor": "leaking",
+    "listrik": "electrical",
+    "korsleting": "electrical short circuit",
+    "genset": "generator",
+    "lift": "elevator",
+    # general
+    "korban": "victim",
+    "butuh": "needs",
+    "segera": "urgently",
+    "tolong": "help",
+    "darurat": "emergency",
+    "ruko": "shophouse",
+    "lantai": "floor",
+    "besar": "large",
+}
+
+
+def pretranslate_id_en(report: str) -> tuple[str, bool]:
+    """Gloss Indonesian emergency terms to English for Laya.
+
+    Returns (translated_report, was_translated). Matching is
+    word-boundary aware (so ``api`` never fires inside ``tetapi``),
+    longest-phrase-first; unmatched text passes through untouched.
+    """
+    text = report or ""
+    hits = [k for k in _ID_EN_GLOSS
+            if re.search(r"\b" + re.escape(k) + r"\b", text,
+                         flags=re.IGNORECASE)]
+    if not hits:
+        return text, False
+    out = text
+    for key in sorted(hits, key=len, reverse=True):
+        out = re.sub(r"\b" + re.escape(key) + r"\b", _ID_EN_GLOSS[key],
+                     out, flags=re.IGNORECASE)
+    return out, True
 
 
 def _from_score_index(score: float, lo: int = 1, hi: int = 5) -> int:
@@ -135,21 +223,41 @@ async def dispatch_incident(report: str,
                             timeout: float = LAYA_TIMEOUT_S) -> dict:
     """Run Laya dispatch; on ANY failure return heuristic fallback.
 
-    Never raises for Laya-side problems — callers get a dict with
-    ``source`` set to ``"laya"`` or ``"fallback"``.
+    The report is pre-translated ID->EN (offline gloss) because Laya's
+    English model misclassifies raw Indonesian text. The heuristic
+    fallback runs on the ORIGINAL text (Indonesian keyword maps).
+
+    Confidence gate: when Laya's own ``confidence`` is below 0.5 we do
+    not trust its labels — heuristic fallback wins instead. Never
+    raises for Laya-side problems — callers get a dict with ``source``
+    set to ``"laya"`` or ``"fallback"``.
     """
-    payload = {"state": {"report": report or "(empty report)"},
+    translated, was_translated = pretranslate_id_en(report)
+    payload = {"state": {"report": translated or "(empty report)"},
                "questions": dispatch_questions()}
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
             resp = await client.post(f"{LAYA_BASE_URL}/v1/systemone",
                                      json=payload)
             resp.raise_for_status()
-            answers = (resp.json().get("answers") or {})
+            body = resp.json()
+            answers = (body.get("answers") or {})
         category_val = (answers.get("category") or {}).get("choice", "other")
         category = category_val if isinstance(category_val, str) else "other"
         if category not in CATEGORIES:
             category = "other"
+        laya_conf: float | None = None
+        try:
+            raw_conf = body.get("confidence", answers.get("confidence"))
+            laya_conf = float(raw_conf) if raw_conf is not None else None
+        except (TypeError, ValueError):
+            laya_conf = None
+        if laya_conf is not None and laya_conf < 0.5:
+            log.warning("Laya low confidence (%.2f); using fallback",
+                        laya_conf)
+            plan = heuristic_dispatch(report)
+            plan["reason"] += f" [laya_conf={laya_conf:.2f}]"
+            return plan
         bundle_val = (answers.get("needed_roles") or {}).get("choice")
         bundle = bundle_val if isinstance(bundle_val, str) else ""
         roles = ROLE_BUNDLES.get(bundle)
@@ -160,13 +268,15 @@ async def dispatch_incident(report: str,
             (answers.get("severity") or {}).get("score", 2))
         headcount = _from_score_index(
             (answers.get("headcount") or {}).get("score", 1))
+        tag = "+pretranslated" if was_translated else ""
         return {
             "category": category,
             "severity": severity,
             "required_roles": roles,
             "headcount": headcount,
-            "reason": (f"Laya: category={category} severity={severity} "
-                       f"team={bundle} -> roles={roles} x{headcount}"),
+            "reason": (f"Laya{tag}: category={category} "
+                       f"severity={severity} team={bundle} -> "
+                       f"roles={roles} x{headcount}"),
             "source": "laya",
         }
     except Exception as exc:  # noqa: BLE001 — Laya must never break dispatch

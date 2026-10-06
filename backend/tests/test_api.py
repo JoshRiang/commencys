@@ -288,3 +288,118 @@ def test_heuristic_dispatch_maps_keywords():
     plan = ld.heuristic_dispatch("Orang pingsan butuh ambulans segera")
     assert plan["source"] == "fallback"
     assert "medical" in plan["required_roles"]
+
+
+def test_pretranslate_id_en_glosses_fire_report():
+    import app.laya_dispatch as ld
+
+    out, flag = ld.pretranslate_id_en(
+        "Kebakaran besar di ruko lantai 2, korban terjebak")
+    assert flag is True
+    assert "fire" in out.lower()
+    assert "kebakaran" not in out.lower()
+
+
+def test_pretranslate_id_en_word_boundaries():
+    import app.laya_dispatch as ld
+
+    # 'api' must not fire inside 'tetapi'; standalone 'api' still glosses.
+    out, flag = ld.pretranslate_id_en("Tetapi tidak ada masalah")
+    assert "tetapi" in out.lower()
+    out2, flag2 = ld.pretranslate_id_en("Ada api di dapur")
+    assert flag2 is True
+    assert "tetapi" not in out2.lower() or "flames" in out2.lower()
+
+
+def test_pretranslate_id_en_english_passthrough():
+    import app.laya_dispatch as ld
+
+    out, flag = ld.pretranslate_id_en(
+        "Large building fire with trapped victims")
+    assert flag is False
+    assert out == "Large building fire with trapped victims"
+
+
+def test_laya_low_confidence_falls_back(monkeypatch):
+    """Laya answer with confidence < 0.5 -> heuristic fallback wins."""
+    import app.laya_dispatch as ld
+
+    class _LowConf:
+        def __init__(self, *a, **k):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *exc):
+            return False
+
+        async def post(self, *a, **k):
+            class _Resp:
+                def raise_for_status(self):
+                    pass
+
+                def json(self):
+                    return {"answers": {
+                        "category": {"choice": "accident"},
+                        "needed_roles": {"choice": "rescue_team"},
+                        "severity": {"score": 1},
+                        "headcount": {"score": 1},
+                    }, "confidence": 0.30}
+
+            return _Resp()
+
+    import httpx
+
+    monkeypatch.setattr(httpx, "AsyncClient", _LowConf)
+    import asyncio
+
+    plan = asyncio.run(ld.dispatch_incident("Kebakaran besar, api di mana"))
+    assert plan["source"] == "fallback"
+    assert "laya_conf=0.30" in plan["reason"]
+    assert "fire" in plan["required_roles"]
+
+
+def test_laya_sends_pretranslated_report(monkeypatch):
+    """The /v1/systemone payload carries the EN gloss, not raw ID text."""
+    import app.laya_dispatch as ld
+
+    seen = {}
+
+    class _Capture:
+        def __init__(self, *a, **k):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *exc):
+            return False
+
+        async def post(self, url, json=None):
+            seen["report"] = (json or {})["state"]["report"]
+
+            class _Resp:
+                def raise_for_status(self):
+                    pass
+
+                def json(self):
+                    return {"answers": {
+                        "category": {"choice": "fire"},
+                        "needed_roles": {"choice": "fire_team"},
+                        "severity": {"score": 3},
+                        "headcount": {"score": 1},
+                    }, "confidence": 0.9}
+
+            return _Resp()
+
+    import httpx
+
+    monkeypatch.setattr(httpx, "AsyncClient", _Capture)
+    import asyncio
+
+    plan = asyncio.run(ld.dispatch_incident("Kebakaran di dapur"))
+    assert plan["source"] == "laya"
+    assert "+pretranslated" in plan["reason"]
+    assert "kebakaran" not in seen["report"].lower()
+    assert "fire" in seen["report"].lower()
