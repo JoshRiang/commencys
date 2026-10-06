@@ -29,7 +29,7 @@ class RolePickerScreen extends StatefulWidget {
   State<RolePickerScreen> createState() => _RolePickerScreenState();
 }
 
-const _roleMeta = <String, (String, IconData, Color, Color)>{
+final _roleMeta = <String, (String, IconData, Color, Color)>{
   'medical': (
     'Medical',
     Icons.medical_services_rounded,
@@ -44,7 +44,7 @@ const _roleMeta = <String, (String, IconData, Color, Color)>{
   ),
   'rescue': (
     'Rescue',
-    Icons.life_buoy_outlined,
+    Icons.support_outlined,
     AppColors.info,
     AppColors.infoSoft,
   ),
