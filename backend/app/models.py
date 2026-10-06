@@ -70,6 +70,30 @@ class CorrectIn(BaseModel):
     urgency: Optional[str] = None
 
 
+class VolunteerIn(BaseModel):
+    """Volunteer registration — roles drive targeted dispatch invites."""
+
+    name: str
+    phone: Optional[str] = None
+    roles: list[str] = Field(default_factory=list)
+    skills: list[str] = Field(default_factory=list)
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
+
+
+class Volunteer(BaseModel):
+    id: str = Field(default_factory=lambda: uuid4().hex[:12])
+    name: str
+    phone: Optional[str] = None
+    roles: list[str] = Field(default_factory=list)
+    skills: list[str] = Field(default_factory=list)
+    latitude: float
+    longitude: float
+    created_at: str = Field(
+        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+    )
+
+
 class Incident(BaseModel):
     id: str = Field(default_factory=lambda: uuid4().hex[:12])
     title: str

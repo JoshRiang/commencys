@@ -25,8 +25,10 @@ from fastapi import BackgroundTasks, FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from .ai_pipeline import MODEL_VERSION, classify, cluster
-from .models import CorrectIn, Incident, IncidentIn, SosIn, Status, Urgency
+from .ai_pipeline import MODEL_VERSION, classify, cluster, haversine_m
+from .laya_dispatch import VALID_ROLES, dispatch_incident
+from .models import (CorrectIn, Incident, IncidentIn, SosIn, Status, Urgency,
+                     Volunteer, VolunteerIn)
 
 log = logging.getLogger("commencys")
 logging.basicConfig(level=logging.INFO)
@@ -43,6 +45,7 @@ app.add_middleware(
 )
 
 _store: dict[str, dict[str, Any]] = {}
+_volunteers: dict[str, dict[str, Any]] = {}
 _lock = asyncio.Lock()
 _sockets: set[WebSocket] = set()
 
@@ -197,6 +200,111 @@ async def dispatch(ticket_id: str, volunteer: str = "volunteer") -> JSONResponse
     asyncio.create_task(
         _broadcast(ticket_to_frame(ticket, "incident.dispatched")))
     return JSONResponse(status_code=200, content=ticket)
+
+
+# ------------------------------------------------------- volunteer registry
+@app.post("/api/volunteers", status_code=201)
+async def register_volunteer(body: VolunteerIn) -> JSONResponse:
+    """Register a volunteer with roles + home coordinates for dispatch."""
+    bad = [r for r in body.roles if r not in VALID_ROLES]
+    if bad:
+        return JSONResponse(
+            status_code=422,
+            content={"detail": f"invalid roles {bad}; "
+                               f"valid: {sorted(VALID_ROLES)}"})
+    volunteer = Volunteer(
+        name=body.name,
+        phone=body.phone,
+        roles=list(dict.fromkeys(body.roles)),  # dedupe, keep order
+        skills=list(body.skills),
+        latitude=body.latitude,
+        longitude=body.longitude,
+    ).model_dump()
+    async with _lock:
+        _volunteers[volunteer["id"]] = volunteer
+    _audit("volunteer_register", volunteer["id"],
+           f"{body.name} roles={volunteer['roles']}")
+    return JSONResponse(status_code=201, content=volunteer)
+
+
+@app.get("/api/volunteers")
+async def list_volunteers(role: str | None = None,
+                          category: str | None = None) -> list[dict[str, Any]]:
+    """List volunteers; optional ?role= filter (category is an alias)."""
+    wanted = role or category
+    async with _lock:
+        volunteers = list(_volunteers.values())
+    if wanted:
+        volunteers = [v for v in volunteers if wanted in v.get("roles", [])]
+    return volunteers
+
+
+# ------------------------------------------------------- Laya auto-dispatch
+def _match_volunteers(ticket: dict[str, Any], required_roles: list[str],
+                      headcount: int) -> list[dict[str, Any]]:
+    """Pick volunteers by role overlap, nearest-first via haversine_m."""
+    scored: list[tuple[int, float, dict[str, Any]]] = []
+    for vol in _volunteers.values():
+        overlap = len(set(vol.get("roles", [])) & set(required_roles))
+        if overlap <= 0:
+            continue
+        try:
+            dist = haversine_m(ticket["latitude"], ticket["longitude"],
+                               vol["latitude"], vol["longitude"])
+        except (KeyError, TypeError):
+            continue
+        scored.append((-overlap, dist, vol))
+    scored.sort(key=lambda s: (s[0], s[1]))
+    invites = []
+    for neg_overlap, dist, vol in scored[:max(headcount, 0)]:
+        invites.append({
+            "volunteer_id": vol["id"],
+            "name": vol["name"],
+            "matched_roles": sorted(
+                set(vol.get("roles", [])) & set(required_roles)),
+            "overlap": -neg_overlap,
+            "distance_m": round(dist, 1),
+        })
+    return invites
+
+
+@app.post("/api/incidents/{ticket_id}/dispatch-auto", status_code=200)
+async def dispatch_auto(ticket_id: str) -> JSONResponse:
+    """Laya AI dispatch: infer roles/headcount, invite matching volunteers.
+
+    Manual ``POST .../dispatch`` override is untouched. Laya failures fall
+    back to heuristics inside ``dispatch_incident`` — never 5xx for that.
+    """
+    async with _lock:
+        ticket = _store.get(ticket_id)
+        if ticket is None:
+            return JSONResponse(status_code=404,
+                                content={"detail": "ticket not found"})
+        report = f"{ticket.get('title', '')} {ticket.get('description', '')}"
+    plan = await dispatch_incident(report)
+    required_roles = plan["required_roles"]
+    invites = _match_volunteers(ticket, required_roles, plan["headcount"])
+    async with _lock:
+        ticket = _store.get(ticket_id)
+        if ticket is None:
+            return JSONResponse(status_code=404,
+                                content={"detail": "ticket not found"})
+        ticket["required_roles"] = required_roles
+        ticket["dispatch_source"] = plan["source"]
+        ticket["invited"] = [i["volunteer_id"] for i in invites]
+        _store[ticket_id] = ticket
+    _audit("dispatch_auto", ticket_id,
+           f"{plan['source']} roles={required_roles} "
+           f"invited={[i['volunteer_id'] for i in invites]} "
+           f"reason={plan['reason']}")
+    asyncio.create_task(_broadcast(ticket_to_frame(
+        ticket, "incident.dispatch_auto")))
+    return JSONResponse(status_code=200, content={
+        "ticket": ticket,
+        "invites": invites,
+        "dispatch": plan,
+        "reason": plan["reason"],
+    })
 
 
 @app.get("/api/review-queue")

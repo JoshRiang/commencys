@@ -170,3 +170,121 @@ def test_audit_trail_records_lifecycle():
     actions = {e["action"] for e in entries}
     assert {"create", "ai_classify"} <= actions
     assert all(e["model_version"] == "heuristic-v2" for e in entries)
+
+
+# ------------------------------------------------- volunteer registry tests
+def test_volunteer_register_and_validation():
+    r = client.post("/api/volunteers", json={
+        "name": "Medic Andi", "phone": "+62812",
+        "roles": ["medical", "driver"], "skills": ["CPR"],
+        "latitude": -6.36, "longitude": 106.82,
+    })
+    assert r.status_code == 201
+    body = r.json()
+    assert body["name"] == "Medic Andi" and body["id"]
+    assert set(body["roles"]) == {"medical", "driver"}
+
+    bad = client.post("/api/volunteers", json={
+        "name": "Bogus", "roles": ["sniper"],
+        "latitude": -6.36, "longitude": 106.82,
+    })
+    assert bad.status_code == 422
+
+
+def test_volunteer_list_and_role_filter():
+    client.post("/api/volunteers", json={
+        "name": "Fire Budi", "roles": ["fire"],
+        "latitude": -6.361, "longitude": 106.821,
+    })
+    all_vols = client.get("/api/volunteers").json()
+    assert any(v["name"] == "Fire Budi" for v in all_vols)
+    fire_only = client.get("/api/volunteers",
+                           params={"role": "fire"}).json()
+    assert fire_only and all("fire" in v["roles"] for v in fire_only)
+    cat_alias = client.get("/api/volunteers",
+                           params={"category": "fire"}).json()
+    assert {v["id"] for v in cat_alias} == {v["id"] for v in fire_only}
+
+
+# ------------------------------------------------- Laya dispatch-auto tests
+def _reg(name: str, roles: list, lat: float, lng: float) -> dict:
+    return client.post("/api/volunteers", json={
+        "name": name, "roles": roles,
+        "latitude": lat, "longitude": lng,
+    }).json()
+
+
+def test_dispatch_auto_matching_picks_right_role(monkeypatch):
+    """Mocked Laya plan (fire) must invite the fire volunteer, not others."""
+    from fastapi.testclient import TestClient  # noqa: F401 (keeps parity)
+
+    near_fire = _reg("Auto Fire", ["fire", "rescue"], -6.361, 106.821)
+    far_security = _reg("Auto Security", ["security"], -6.9, 107.3)
+
+    async def _fake_plan(report: str) -> dict:
+        assert report  # incident text reaches the dispatcher
+        return {"category": "fire", "severity": 4,
+                "required_roles": ["fire", "rescue"], "headcount": 3,
+                "reason": "test plan", "source": "laya"}
+
+    monkeypatch.setattr("app.main.dispatch_incident", _fake_plan)
+    tid = client.post("/api/incidents", json={
+        "title": "Kebakaran ruko", "description": "Api besar lantai 2",
+        "category": "fire", "latitude": -6.361, "longitude": 106.821,
+    }).json()["id"]
+    r = client.post(f"/api/incidents/{tid}/dispatch-auto")
+    assert r.status_code == 200
+    body = r.json()
+    invited = {i["volunteer_id"] for i in body["invites"]}
+    assert near_fire["id"] in invited
+    assert far_security["id"] not in invited
+    assert set(body["ticket"]["required_roles"]) == {"fire", "rescue"}
+    assert set(body["ticket"]["invited"]) == invited
+    assert body["reason"] == "test plan"
+    entries = client.get("/api/audit",
+                         params={"incident_id": tid}).json()
+    assert "dispatch_auto" in {e["action"] for e in entries}
+
+    # Manual override untouched: still transitions to dispatched.
+    m = client.post(f"/api/incidents/{tid}/dispatch",
+                    params={"volunteer": near_fire["name"]})
+    assert m.status_code == 200 and m.json()["status"] == "dispatched"
+
+
+def test_dispatch_auto_404_unknown_ticket():
+    r = client.post("/api/incidents/doesnotexist/dispatch-auto")
+    assert r.status_code == 404
+
+
+def test_laya_down_fallback(monkeypatch):
+    """Mocked Laya timeout -> heuristic fallback, never raises."""
+    import httpx
+
+    import app.laya_dispatch as ld
+
+    class _Down:
+        def __init__(self, *a, **k):
+            pass
+
+        async def __aenter__(self):
+            raise httpx.ConnectTimeout("laya down")
+
+        async def __aexit__(self, *exc):
+            return False
+
+    monkeypatch.setattr(httpx, "AsyncClient", _Down)
+    import asyncio
+
+    plan = asyncio.run(ld.dispatch_incident(
+        "Kebakaran besar, asap tebal, korban terjebak"))
+    assert plan["source"] == "fallback"
+    assert plan["required_roles"]  # heuristic still yields roles
+    assert plan["headcount"] >= 1 and plan["reason"]
+
+
+def test_heuristic_dispatch_maps_keywords():
+    import app.laya_dispatch as ld
+
+    plan = ld.heuristic_dispatch("Orang pingsan butuh ambulans segera")
+    assert plan["source"] == "fallback"
+    assert "medical" in plan["required_roles"]
