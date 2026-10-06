@@ -11,26 +11,34 @@ parent: SDLC — Waterfall Model
 
 ```mermaid
 flowchart LR
-    subgraph clients["Clients (Flutter app — spec §7 role: PWA)"]
-        W["Warga\nSOS + manual pin"]
-        V["Relawan\naccept + ETA"]
-        K["Koordinator\ntriage + correction"]
+    subgraph clients["Clients (Flutter)"]
+        direction TB
+        W["Warga — SOS + manual pin"]
+        V["Relawan — roles, accept + ETA"]
+        K["Koordinator — triage + dispatch-auto"]
     end
-    W -->|POST /api/sos\n< 5 s ack| API
-    V -->|POST dispatch| API
-    K -->|review / split| API
-    subgraph backend["FastAPI backend"]
-        API["REST + WS gateway"]
-        AI["IndoBERT + DBSCAN\nBackgroundTasks (async)"]
+    API["FastAPI :8791 — REST + WS"]
+    subgraph services["Services + stores"]
+        direction TB
+        REG[("Volunteer registry<br/>in-memory")]
+        LAYA["Laya :8010 — role inference"]
+        AI["IndoBERT + DBSCAN — async"]
+        DB[("PostgreSQL/PostGIS<br/>incidents + audit")]
+        OSRM["OSRM — route + ETA"]
     end
-    API -->|persist| DB[("PostgreSQL/PostGIS\nincidents + audit")]
-    API -->|enqueue| AI
-    AI -->|metadata only| DB
-    API -->|WS /ws/alerts| V
-    API -->|WS /ws/alerts| K
-    API -->|WS /ws/alerts| W
-    API -->|proxy| OSRM["OSRM\nroute + ETA"]
-    OSRM --> V
+    W -->|"POST /api/sos"| API
+    V -->|"POST volunteers, dispatch"| API
+    K -->|"POST dispatch-auto"| API
+    API -->|"persist"| DB
+    API -->|"enqueue"| AI
+    AI -->|"metadata"| DB
+    API -->|"match roles"| REG
+    API -.->|"infer; conf<0.5 fallback"| LAYA
+    API -->|"WS alerts + dispatch_auto"| V
+    API -->|"WS alerts"| K
+    API -->|"WS alerts"| W
+    API -->|"proxy"| OSRM
+    OSRM -->|"ETA"| V
 ```
 
 Rendered: `docs/architecture.png` (Mermaid source above is normative; PNG is

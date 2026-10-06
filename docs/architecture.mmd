@@ -1,20 +1,30 @@
 flowchart LR
-    W["Warga<br/>SOS + manual pin"]
-    V["Relawan<br/>accept + ETA"]
-    K["Koordinator<br/>triage + correction"]
-    API["FastAPI<br/>REST + WS gateway"]
-    AI["IndoBERT + DBSCAN<br/>BackgroundTasks (async)"]
-    DB[("PostgreSQL/PostGIS<br/>incidents + audit")]
-    OSRM["OSRM<br/>route + ETA"]
+    subgraph clients["Clients (Flutter)"]
+        direction TB
+        W["Warga — SOS + manual pin"]
+        V["Relawan — roles, accept + ETA"]
+        K["Koordinator — triage + dispatch-auto"]
+    end
+    API["FastAPI :8791 — REST + WS"]
+    subgraph services["Services + stores"]
+        direction TB
+        REG[("Volunteer registry<br/>in-memory")]
+        LAYA["Laya :8010 — role inference"]
+        AI["IndoBERT + DBSCAN — async"]
+        DB[("PostgreSQL/PostGIS<br/>incidents + audit")]
+        OSRM["OSRM — route + ETA"]
+    end
 
-    W -->|"POST /api/sos<br/>&lt; 5 s ack"| API
-    V -->|"POST dispatch"| API
-    K -->|"review / split"| API
+    W -->|"POST /api/sos"| API
+    V -->|"POST volunteers, dispatch"| API
+    K -->|"POST dispatch-auto"| API
     API -->|"persist"| DB
     API -->|"enqueue"| AI
-    AI -->|"metadata only"| DB
-    API -->|"WS /ws/alerts"| V
-    API -->|"WS /ws/alerts"| K
-    API -->|"WS /ws/alerts"| W
+    AI -->|"metadata"| DB
+    API -->|"match roles"| REG
+    API -.->|"infer; conf&lt;0.5 fallback"| LAYA
+    API -->|"WS alerts + dispatch_auto"| V
+    API -->|"WS alerts"| K
+    API -->|"WS alerts"| W
     API -->|"proxy"| OSRM
-    OSRM --> V
+    OSRM -->|"ETA"| V
