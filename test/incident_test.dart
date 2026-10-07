@@ -13,6 +13,14 @@ void main() {
         AppConfig.wsUrlFor('https://example.com:8443/'),
         'wss://example.com:8443/ws/alerts',
       );
+      expect(
+        AppConfig.wsUrlFor('https://example.com/commencys'),
+        'wss://example.com/commencys/ws/alerts',
+      );
+      expect(
+        AppConfig.wsUrlFor('https://example.com/commencys/'),
+        'wss://example.com/commencys/ws/alerts',
+      );
     });
 
     test('setBaseUrl trims and strips trailing slashes', () {

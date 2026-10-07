@@ -15,6 +15,16 @@ class ApiClient {
   final String baseUrl;
   final http.Client _client;
 
+  /// Headers for write ops. The public demo proxy requires `X-Demo-Key`
+  /// on POST/PUT/PATCH/DELETE; empty locally (no-op) when no key is baked.
+  static Map<String, String> _writeHeaders([Map<String, String>? extra]) {
+    final headers = <String, String>{...?extra};
+    if (AppConfig.demoKey.isNotEmpty) {
+      headers['X-Demo-Key'] = AppConfig.demoKey;
+    }
+    return headers;
+  }
+
   ApiClient({String? baseUrl, http.Client? client})
       : baseUrl = baseUrl ?? AppConfig.baseUrl,
         _client = client ?? http.Client();
@@ -39,13 +49,12 @@ class ApiClient {
     required double latitude,
     required double longitude,
     double? accuracyM,
-    required String severity,
     required String reporterName,
   }) async {
     final res = await _client
         .post(
           Uri.parse('$baseUrl/api/incidents'),
-          headers: {'Content-Type': 'application/json'},
+          headers: _writeHeaders({'Content-Type': 'application/json'}),
           body: jsonEncode({
             'title': title,
             'description': description,
@@ -53,7 +62,6 @@ class ApiClient {
             'latitude': latitude,
             'longitude': longitude,
             'accuracy_m': accuracyM,
-            'severity': severity,
             'reporter_name': reporterName,
           }),
         )
@@ -76,7 +84,7 @@ class ApiClient {
     final res = await _client
         .post(
           Uri.parse('$baseUrl/api/sos'),
-          headers: {'Content-Type': 'application/json'},
+          headers: _writeHeaders({'Content-Type': 'application/json'}),
           body: jsonEncode({
             'latitude': latitude,
             'longitude': longitude,
@@ -101,6 +109,7 @@ class ApiClient {
         .post(
           Uri.parse('$baseUrl/api/incidents/$ticketId/dispatch'
               '?volunteer=${Uri.encodeComponent(volunteer)}'),
+          headers: _writeHeaders(),
         )
         .timeout(requestTimeout);
     if (res.statusCode != 200) {
@@ -132,7 +141,7 @@ class ApiClient {
     final res = await _client
         .post(
           Uri.parse('$baseUrl/api/incidents/$ticketId/correct'),
-          headers: {'Content-Type': 'application/json'},
+          headers: _writeHeaders({'Content-Type': 'application/json'}),
           body: jsonEncode({
             'ai_category': aiCategory,
             'urgency': urgency,
@@ -148,7 +157,8 @@ class ApiClient {
   /// Reversible clustering: clear this ticket's cluster link.
   Future<Incident> splitCluster({required String ticketId}) async {
     final res = await _client
-        .post(Uri.parse('$baseUrl/api/incidents/$ticketId/split'))
+        .post(Uri.parse('$baseUrl/api/incidents/$ticketId/split'),
+            headers: _writeHeaders())
         .timeout(requestTimeout);
     if (res.statusCode != 200) {
       throw Exception('Failed to split cluster (${res.statusCode})');
@@ -189,7 +199,7 @@ class ApiClient {
     final res = await _client
         .post(
           Uri.parse('$baseUrl/api/volunteers'),
-          headers: {'Content-Type': 'application/json'},
+          headers: _writeHeaders({'Content-Type': 'application/json'}),
           body: jsonEncode({
             'name': name,
             'roles': roles,

@@ -19,7 +19,7 @@ storage, and OSRM-labelled ETAs.
 |---------|---------|
 | Backend (FastAPI, systemd `commencys-backend`) | `http://100.89.180.23:8791` (Tailnet, `0.0.0.0:8791`) |
 | Laya dispatch agent (systemd `laya-api`) | `http://127.0.0.1:8010` (`/health`, `POST /v1/systemone`; `LAYA_BASE_URL` env, 15 s timeout → heuristic fallback, never 5xx) |
-| Mobile default | CI bakes `--dart-define=API_BASE=http://100.89.180.23:8791` (works on the Tailnet out of the box; overridable in-app via the server icon) |
+| Mobile default | CI bakes `--dart-define=API_BASE=https://vector-server.tail53166f.ts.net/commencys --dart-define=DEMO_KEY=${{ secrets.DEMO_KEY }}` (public funnel URL + baked demo key, works off-Tailnet out of the box; overridable in-app via the server icon) |
 
 ## Contributors
 
@@ -78,8 +78,10 @@ flutter pub get
 flutter analyze
 flutter test   # 5/5 + 7/7
 flutter run
-# Backend address: Tailnet default http://100.89.180.23:8791.
-# Phone on the same Tailnet: works out of the box (CI-baked API_BASE),
+# Backend address: public demo default https://vector-server.tail53166f.ts.net/commencys
+# (funnel → :8791; writes need X-Demo-Key, baked into CI APKs via DEMO_KEY secret).
+# Local dev: http://10.0.2.2:8000 (emulator) or Tailnet http://100.89.180.23:8791.
+# Phone off the Tailnet: works out of the box (CI-baked API_BASE + demo key),
 # or tap the server icon in the app bar to override
 # (or bake it in: flutter build apk --release --dart-define=API_BASE=<url>)
 # Laya (dispatch-auto role inference): served separately on 127.0.0.1:8010;
@@ -92,8 +94,9 @@ flutter run
    versioned copy in `docs/05-deployment.md`.
 2. Install it (Android allows direct APK install after a one-time
    "unknown apps" confirmation).
-3. Join the Tailnet (or set the server URL in-app via the server icon,
-   top right), then send a test SOS.
+3. Open it anywhere — the public demo backend + baked demo key mean SOS /
+   report / dispatch work with no Tailnet and no setup (or set the server
+   URL in-app via the server icon, top right, for local dev).
 
 ## Backend contract (13 REST + 1 WS)
 
@@ -110,7 +113,8 @@ flutter run
 - `POST /api/incidents/{id}/split` → 200 clear cluster link (reversible dedup)
 - `GET /api/audit?incident_id=` → immutable trail (`create/ai_classify/cluster/dispatch/dispatch_auto/volunteer_register/correct/split`)
 - `GET /api/eta` → `{source: stub|osrm, distance_m, eta_s}`
-- `WS /ws/alerts` → live frames (`incident.sos/created/ai_updated/dispatch_auto/dispatched`)
+- `WS /ws/alerts` → live frames (`incident.sos/created/ai_updated/dispatch_auto/dispatched`;
+  behind the `/commencys` funnel prefix this is `wss://vector-server.tail53166f.ts.net/commencys/ws/alerts`)
 
 Full contract: [`docs/api-contract.md`](docs/api-contract.md) ·
 DB schema: [`docs/db-schema.md`](docs/db-schema.md).
@@ -166,5 +170,7 @@ GitHub Actions ([`ci.yml`](.github/workflows/ci.yml)): backend job
 (`pip install` → `pytest`, 24 tests) + Flutter job
 (`pub get` → `analyze` → `test` → `build apk --release`),
 publishing the release APK as the `app-release` artifact with
-`API_BASE=http://100.89.180.23:8791` baked in.
+`API_BASE=https://vector-server.tail53166f.ts.net/commencys` +
+`DEMO_KEY=${{ secrets.DEMO_KEY }}` baked in (public demo: reads open,
+writes gated by `X-Demo-Key`).
 Docs site via [`pages.yml`](.github/workflows/pages.yml) → GitHub Pages.

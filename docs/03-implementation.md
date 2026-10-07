@@ -46,9 +46,11 @@ Home / Report / Map / Alerts / SOS), map as the center default tab.
 - In-app server setting (`lib/widgets/server_dialog.dart`, app-bar icon)
   overrides the baked endpoint per session.
 - Backend APIs unchanged. CI bakes
-  `--dart-define=API_BASE=http://100.89.180.23:8791` so the APK works on
-  the Tailnet out of the box; emulator fallback stays
-  `http://10.0.2.2:8000`.
+  `--dart-define=API_BASE=https://vector-server.tail53166f.ts.net/commencys`
+  `--dart-define=DEMO_KEY=${{ secrets.DEMO_KEY }}` so the APK works
+  off-Tailnet out of the box against the public funnel (reads open, writes
+  gated by `X-Demo-Key`, sent automatically from the baked key); emulator
+  fallback stays `http://10.0.2.2:8000`.
 
 ## Backend + client — AI triage heuristic-v2 (maintenance change request `65409f0`, released as v1.2.0)
 

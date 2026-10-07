@@ -111,7 +111,6 @@ class _ReportScreenState extends State<ReportScreen> {
         latitude: pos?.latitude ?? -6.2,
         longitude: pos?.longitude ?? 106.8,
         accuracyM: pos?.accuracy,
-        severity: _severity,
         reporterName:
             _nameCtrl.text.trim().isEmpty ? 'Anonymous' : _nameCtrl.text.trim(),
       );

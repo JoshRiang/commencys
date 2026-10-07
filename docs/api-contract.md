@@ -8,7 +8,11 @@ parent: Reference
 # API Contract (FastAPI — client-agnostic)
 
 Base URL: emulator `http://10.0.2.2:8000`, device-on-LAN `http://<host>:8000`,
-live supervised backend `http://100.89.180.23:8791` (Tailnet, `:8791`).
+live supervised backend `http://100.89.180.23:8791` (Tailnet, `:8791`),
+public demo `https://vector-server.tail53166f.ts.net/commencys`
+(funnel → `:8791`; reads open, write ops `POST/PUT/PATCH/DELETE` require
+`X-Demo-Key` header — the CI-built demo APK sends it automatically from
+its baked `DEMO_KEY`).
 Auth (production): `Authorization: Bearer <JWT>`; RBAC roles
 `reporter / volunteer / coordinator` (spec station 6). MVP skeleton leaves
 auth as a gateway TODO — endpoints are deterministic and permission-checked
@@ -113,6 +117,11 @@ Production proxies self-hosted OSRM `/route/v1`; `source` tells the client
 whether the ETA is routed or a labelled fallback estimate.
 
 ## `WS /ws/alerts`
+
+Behind the `/commencys` funnel prefix the public demo URL is
+`wss://vector-server.tail53166f.ts.net/commencys/ws/alerts`
+(`AppConfig.wsUrlFor` preserves the base path; local dev stays
+`ws://<host>:<port>/ws/alerts`).
 
 Server frames (JSON): `hello`, `incident.sos`, `incident.created`,
 `incident.ai_updated`, `incident.dispatched`, `incident.dispatch_auto`. Frame shape:

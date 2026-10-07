@@ -11,18 +11,27 @@
 class AppConfig {
   static const defaultBaseUrl = String.fromEnvironment(
     'API_BASE',
-    defaultValue: 'http://10.0.2.2:8000',
+    defaultValue: 'https://vector-server.tail53166f.ts.net/commencys',
   );
+
+  /// Baked-in demo key for the public proxy (write ops require X-Demo-Key).
+  /// Empty by default (local dev); CI bakes it via --dart-define=DEMO_KEY.
+  static const demoKey = String.fromEnvironment('DEMO_KEY', defaultValue: '');
 
   static String baseUrl = defaultBaseUrl;
 
-  /// `http(s)://host:port` → `ws(s)://host:port/ws/alerts`.
+  /// `http(s)://host[:port][/prefix]` → `ws(s)://host[:port][/prefix]/ws/alerts`.
+  /// Preserves an optional base path (e.g. the `/commencys` funnel prefix).
   static String wsUrlFor(String base) {
     final uri = Uri.parse(base);
     final scheme = uri.scheme == 'https' ? 'wss' : 'ws';
     final host = uri.host.isEmpty ? '10.0.2.2' : uri.host;
     final port = uri.hasPort ? ':${uri.port}' : '';
-    return '$scheme://$host$port/ws/alerts';
+    var prefix = uri.path;
+    while (prefix.endsWith('/')) {
+      prefix = prefix.substring(0, prefix.length - 1);
+    }
+    return '$scheme://$host$port$prefix/ws/alerts';
   }
 
   static String get wsUrl => wsUrlFor(baseUrl);

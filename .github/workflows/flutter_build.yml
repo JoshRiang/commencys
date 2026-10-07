@@ -19,7 +19,7 @@ jobs:
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
-      - run: flutter build apk --release --dart-define=API_BASE=http://100.89.180.23:8791
+      - run: flutter build apk --release --dart-define=API_BASE=https://vector-server.tail53166f.ts.net/commencys --dart-define=DEMO_KEY=${{ secrets.DEMO_KEY }}
       - uses: actions/upload-artifact@v4
         with:
           name: app-release
