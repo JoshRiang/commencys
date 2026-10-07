@@ -13,7 +13,7 @@ parent: SDLC — Waterfall Model
 flowchart LR
     subgraph clients["Clients (Flutter)"]
         direction TB
-        W["Warga — SOS + manual pin"]
+        W["Warga — SOS GPS (manual pin OPEN, SOS blocks without fix)"]
         V["Relawan — roles, accept + ETA"]
         K["Koordinator — triage + dispatch-auto"]
     end

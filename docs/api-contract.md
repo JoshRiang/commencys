@@ -125,6 +125,8 @@ Server frames (JSON): `hello`, `incident.sos`, `incident.created`,
 
 Client sends heartbeat text; must implement auto-reconnect with exponential
 backoff + REST re-sync (`GET /api/incidents`) on flaky networks (spec §3).
+Note: the server emits a `hello` frame on every connect — clients must filter
+non-`incident.*` frames before treating a message as an alert.
 
 ## `GET /health` → 200 `{"status": "ok", "service": "commencys-mvp"}`
 

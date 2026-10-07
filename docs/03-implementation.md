@@ -162,6 +162,9 @@ low-confidence fallback, pretranslated-payload capture.
 ## Known TODOs (tracked, not silent)
 
 - Manual pin adjustment UI on the map (criterion 1 fallback) — contract
-  field `accuracy_m` already supported.
+  field `accuracy_m` already supported. **OPEN, not shipped:** `location_service.dart`
+  fails fast (returns null on no fix) and `sos_screen.dart` blocks with
+  "Location permission denied. Enable GPS." — no manual-pin fallback exists today
+  (map shows only display markers, not draggable).
 - JWT + RBAC gateway (station 6, `api-contract.md`).
 - Real IndoBERT checkpoint + PostGIS + OSRM wiring (M2/M3 in `00-planning.md`).
