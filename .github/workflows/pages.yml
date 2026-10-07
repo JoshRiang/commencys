@@ -1,5 +1,5 @@
 # Deploy the Jekyll docs site to GitHub Pages (Actions source).
-# Site URL: https://joschriang.github.io/commencys/
+# Site URL: https://joshriang.github.io/commencys/
 name: Deploy Jekyll site to Pages
 
 on:
