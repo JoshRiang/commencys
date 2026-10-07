@@ -7,8 +7,10 @@ import '../services/api_client.dart';
 import '../services/location_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/ai_badges.dart';
+import '../widgets/floating_tab_bar.dart';
 import '../widgets/glass.dart';
 import '../widgets/server_dialog.dart';
+import '../widgets/urgency_labels.dart';
 
 /// Map is home: full-bleed live map under a floating glass top bar
 /// (search/status pill + backend server button), a draggable glass bottom
@@ -89,8 +91,15 @@ class _MapScreenState extends State<MapScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      builder: (sheetContext) => Padding(
+        // layout.md › Guides and safe areas: sheet content clears the
+        // system bottom inset, not just a fixed margin.
+        padding: EdgeInsets.fromLTRB(
+          16,
+          0,
+          16,
+          24 + MediaQuery.of(sheetContext).padding.bottom,
+        ),
         child: LiquidGlass(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -105,10 +114,24 @@ class _MapScreenState extends State<MapScreen> {
                           fontSize: 16, fontWeight: FontWeight.w800),
                     ),
                   ),
-                  Pill(
-                    label: i.severity.name.toUpperCase(),
-                    bg: AppColors.severitySoftFor(i.severity.name),
-                    fg: AppColors.severityFor(i.severity.name),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Pill(
+                        label: UrgencyLabels.forUrgency(i.urgency),
+                        bg: UrgencyLabels.urgencyBg(i.urgency),
+                        fg: UrgencyLabels.urgencyFg(i.urgency),
+                        icon: Icons.bolt_rounded,
+                      ),
+                      const SizedBox(height: 6),
+                      Pill(
+                        label:
+                            UrgencyLabels.forSeverity(i.severity.name),
+                        bg: AppColors.severitySoftFor(i.severity.name),
+                        fg: AppColors.severityFor(i.severity.name),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -306,11 +329,12 @@ class _MapScreenState extends State<MapScreen> {
                               fontWeight: FontWeight.w700),
                         ),
                       ),
-                      if (!_loading && _incidents.isNotEmpty)
+                      if (!_loading && urgent > 0)
                         Pill(
-                          label: '$urgent urgent',
+                          label: '$urgent need help NOW',
                           bg: AppColors.accentSoft,
                           fg: AppColors.accentDeep,
+                          icon: Icons.bolt_rounded,
                         ),
                       IconButton(
                         visualDensity: VisualDensity.compact,

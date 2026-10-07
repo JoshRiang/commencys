@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
@@ -96,6 +97,51 @@ class ApiClient {
         .timeout(requestTimeout);
     if (res.statusCode != 200 && res.statusCode != 201) {
       throw Exception('Failed to send SOS (${res.statusCode})');
+    }
+    return Incident.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+  }
+
+  /// Voice SOS (multipart `audio` + GPS fields → POST /api/sos-voice).
+  /// Same P1 fail-safe ack as [sendSos]; the demo proxy `X-Demo-Key`
+  /// goes on as a plain header alongside the multipart boundary.
+  /// [onProgress01] fires 0→1 across record-upload wait + byte send so
+  /// the widget can show one honest progress bar for the whole step.
+  Future<Incident> sendSosVoice({
+    required File audioFile,
+    required double latitude,
+    required double longitude,
+    double? accuracyM,
+    String? description,
+    double? durationS,
+    required String reporterName,
+    void Function(double progress01)? onProgress01,
+  }) async {
+    onProgress01?.call(0.05);
+    final req = http.MultipartRequest(
+      'POST',
+      Uri.parse('$baseUrl/api/sos-voice'),
+    );
+    // Multipart write: demo key as header (never in the body).
+    for (final entry in _writeHeaders().entries) {
+      req.headers[entry.key] = entry.value;
+    }
+    req.fields['latitude'] = '$latitude';
+    req.fields['longitude'] = '$longitude';
+    if (accuracyM != null) req.fields['accuracy_m'] = '$accuracyM';
+    if (description != null && description.isNotEmpty) {
+      req.fields['description'] = description;
+    }
+    if (durationS != null) req.fields['duration_s'] = '$durationS';
+    req.fields['reporter_name'] = reporterName;
+    req.files.add(await http.MultipartFile.fromPath('audio', audioFile.path));
+    onProgress01?.call(0.25);
+    final streamed =
+        await _client.send(req).timeout(requestTimeout);
+    onProgress01?.call(0.8);
+    final res = await http.Response.fromStream(streamed);
+    onProgress01?.call(1.0);
+    if (res.statusCode != 200 && res.statusCode != 201) {
+      throw Exception('Failed to send voice SOS (${res.statusCode})');
     }
     return Incident.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
   }

@@ -38,6 +38,24 @@ Response headers: `X-Process-Time-Ms`, `X-SOS-Budget-S: 5.0`.
 Response body = ticket with `status: "acknowledged"`, `urgency: "P1"`,
 `urgency_source: "sos_default_pending_triage"`.
 
+## `POST /api/sos-voice` → 201
+
+Voice SOS (multipart form). Same P1 fail-safe ack (< 5 s) as `/api/sos`;
+the Flutter voice widget records AAC/m4a (max 60 s) and auto-sends.
+
+Fields: `audio*` (file), `latitude*`, `longitude*`, `accuracy_m`,
+`description`, `reporter_name` (default `Anonymous`), `duration_s`.
+Response body = ticket with `title: "SOS (voice)"`,
+`status: "acknowledged"`, `urgency: "P1"`,
+`urgency_source: "sos_voice_pending_triage"`. Oversize clips
+(`SOS_VOICE_MAX_BYTES` = 10 MB) → 413; empty audio / bad coords → 422.
+The server transcribes Indonesian speech on-request (STT + offline
+ID→EN, wider 15 s budget) and falls back to P1 fail-safe
+"Voice SOS (unintelligible audio)" when transcription fails — a voice
+SOS is never dropped and never 5xx for model reasons.
+→ 413. Audio is metadata-only in this MVP (filename + size stamped on
+`description`); transcription / object storage is a follow-up.
+
 ## `POST /api/incidents` → 201
 
 Full report: `title*`, `description`, `category*`

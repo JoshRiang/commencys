@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass.dart';
 import '../widgets/server_dialog.dart';
+import '../widgets/type_sos_widget.dart';
+import '../widgets/voice_sos_widget.dart';
 
 /// Home tab: greeting header + SOS hero + quick actions, all in
 /// Liquid Glass. Server setting lives here and on the Map top bar.
@@ -133,6 +135,14 @@ class HomeScreen extends StatelessWidget {
                     ],
                   ),
                 ),
+                const SizedBox(height: 16),
+                // Fast SOS lanes: voice (tap → speak → auto-send) and
+                // type (one textbox → send, Laya triages). Both keep the
+                // glass hero language; full SOS screen stays one tap away.
+                const SectionHeader(title: 'Fast SOS'),
+                const VoiceSosWidget(),
+                const SizedBox(height: 12),
+                const TypeSosWidget(),
                 const SizedBox(height: 16),
                 const SectionHeader(title: 'What do you need?'),
                 GridView.count(

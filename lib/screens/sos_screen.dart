@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../widgets/ai_badges.dart';
 import '../widgets/glass.dart';
 import '../widgets/status_timeline.dart';
+import '../widgets/urgency_labels.dart';
 
 /// One-tap SOS: GPS auto-attach (+accuracy radius), stored+acked by the
 /// backend in < 5 s, with transparent ticket status (acknowledged ≠
@@ -77,7 +78,7 @@ class _SosScreenState extends State<SosScreen> {
         child: Column(
           children: [
             const Pill(
-              label: 'FAIL-SAFE P1 UNTIL TRIAGE',
+              label: 'P1 · Segera / NOW — until triage',
               bg: AppColors.accentSoft,
               fg: AppColors.accentDeep,
               icon: Icons.shield_outlined,
@@ -190,10 +191,10 @@ class _SosScreenState extends State<SosScreen> {
                           ),
                         ),
                         Pill(
-                          label:
-                              'URG ${ticket.urgency.name.toUpperCase()}',
-                          bg: AppColors.accentSoft,
-                          fg: AppColors.accentDeep,
+                          label: UrgencyLabels.forUrgency(ticket.urgency),
+                          bg: UrgencyLabels.urgencyBg(ticket.urgency),
+                          fg: UrgencyLabels.urgencyFg(ticket.urgency),
+                          icon: Icons.bolt_rounded,
                         ),
                       ],
                     ),
