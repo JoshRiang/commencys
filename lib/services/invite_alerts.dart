@@ -237,9 +237,10 @@ class InviteAlertService {
         ? ''
         : 'Needs ${d.matchedRoles.join(', ')}. ';
     final reason = d.reason == null || d.reason!.isEmpty ? '' : d.reason!;
-    return '$role$reason'.trim().isEmpty
+    final text = '$role$reason'.trim();
+    return text.isEmpty
         ? '${d.category} • ${d.urgency}'
-        : ('$role$reason'.trim() + ' (${d.category} • ${d.urgency})');
+        : '$text (${d.category} • ${d.urgency})';
   }
 
   /// P1 + invited: full-screen intent, insistent alarm sound, emergency

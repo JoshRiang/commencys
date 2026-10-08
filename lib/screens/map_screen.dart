@@ -479,7 +479,7 @@ class _MapScreenState extends State<MapScreen> {
                                     padding:
                                         EdgeInsets.fromLTRB(
                                             18, 4, 18, listClearance),
-                                    child: EmptyState(
+                                    child: const EmptyState(
                                       icon:
                                           Icons.map_outlined,
                                       title:
