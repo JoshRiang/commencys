@@ -11,20 +11,19 @@ parent: SDLC — Waterfall Model
 
 | Layer | Suite | Command |
 |-------|-------|---------|
-| Backend contract + SOS budget + AI guards + dispatch | `backend/tests/test_api.py` (24 tests: health, SOS < 5 s ack + P1 default, create, list, dispatch transition, WS hello, ETA labelled, + 6 AI guards: no-downgrade, advisory-only escalation, review-queue listing, cluster + split, correct-metadata-only, audit trail, + volunteer register/list/role-filter, dispatch-auto matching, 404, Laya-down fallback, heuristic keyword mapping, pre-translator gloss/word-boundaries/EN-passthrough, low-confidence fallback, pretranslated-payload capture) | `cd backend && pytest -q` |
-| Flutter model + invites | `test/incident_test.dart` (5 tests: WS URL mapping, base-URL normalisation, JSON round-trip, canonical ticket incl. urgency + AI metadata, lifecycle order) + `test/invite_test.dart` (7 tests: targeted-invite parsing, broadcast defaults, case-insensitive matching, invite round-trip, canonical role ids, registration payload, `matchedRoles` helper) | `flutter test` |
-| Static analysis | `flutter analyze` (lints) — clean through AI triage `65409f0` | `flutter analyze` |
+| Backend contract + SOS budget + AI guards + dispatch + voice SOS | `backend/tests/test_api.py` (28 tests: health, SOS < 5 s ack + P1 default, voice SOS multipart + P1 fail-safe + STT fallback, create, list, dispatch transition, WS hello, ETA labelled, + 6 AI guards: no-downgrade, advisory-only escalation, review-queue listing, cluster + split, correct-metadata-only, audit trail, + volunteer register/list/role-filter, dispatch-auto matching, 404, Laya-down fallback, heuristic keyword mapping, pre-translator gloss/word-boundaries/EN-passthrough, low-confidence fallback, pretranslated-payload capture) | `cd backend && pytest -q` |
+| Flutter model + invites + urgency labels | `test/incident_test.dart` (5 tests: WS URL mapping, base-URL normalisation, JSON round-trip, canonical ticket incl. urgency + AI metadata, lifecycle order) + `test/invite_test.dart` (7 tests: targeted-invite parsing, broadcast defaults, case-insensitive matching, invite round-trip, canonical role ids, registration payload, `matchedRoles` helper) + `test/urgency_labels_test.dart` (3 tests: plain-language urgency labels) | `flutter test` |
+| Static analysis | `flutter analyze` (lints) — clean through voice SOS PR #1 | `flutter analyze` |
 | CI (all, both platforms) | `.github/workflows/ci.yml`: backend job (pip + pytest) + flutter job (pub get → analyze → test → release APK) | GitHub Actions on `main` |
 
-## Latest verification (AI triage `65409f0`, 2026-10-02; dispatch work
-`4a94fb6`/`084cb07`/`a91d104` after — counts verified locally `2026-10-06`)
+## Latest verification (voice SOS PR #1, 2026-10-08; AI triage `65409f0`, 2026-10-02; dispatch work `4a94fb6`/`084cb07`/`a91d104` after)
 
 | Check | Result | Evidence |
 |-------|--------|----------|
-| Backend `pytest` | ✅ 24/24 pass | local `pytest -q`, 2026-10-06 (13 contract+AI guards at `65409f0`, +11 volunteer/dispatch/Laya guards since; CI run `36985531449` for the 13) |
-| `flutter analyze` | ✅ clean | CI run `36985531411` (plus `7e3e1e7`/`cd581b2` const-map fixes after) |
-| `flutter test` | ✅ 5/5 + 7/7 pass | `test/incident_test.dart` (5) + `test/invite_test.dart` (7); CI run `36985531411` for the 5 |
-| Release APK | ✅ built | `app-release.apk` artifact, run `36985531411` |
+| Backend `pytest` | ✅ 28/28 pass | voice SOS PR #1 — 24 pre-existing + 4 voice-SOS guards (CI `37716520097`) |
+| `flutter analyze` | ✅ clean | PR #1 head `4a0fa3f` — zero issues (CI `37716520097`) |
+| `flutter test` | ✅ 5/5 + 7/7 + 3/3 pass | `test/incident_test.dart` (5) + `test/invite_test.dart` (7) + `test/urgency_labels_test.dart` (3, new) |
+| Release APK | ✅ built | `app-release.apk` artifact, runs `37716520097` / `37716519974` |
 | Live backend | ✅ serving | `GET /health → {"status":"ok","service":"commencys-mvp"}` |
 | Laya API | ✅ serving | systemd `laya-api` on `127.0.0.1:8010` (`/health`, `/v1/systemone`) |
 

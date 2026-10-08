@@ -5,7 +5,7 @@ title: UI Overhaul Spec — Liquid Glass Map-First
 
 # UI Overhaul Spec — Apple Liquid Glass + Map-First Home
 
-**Status:** spec (not implemented). **Goal:** full visual overhaul of the
+**Status:** partially implemented. Map shell (v1.1.0) + voice SOS / P1 invites (v1.3.0) shipped; remaining items (dark mode, Menu screen, de-glassed rows, clustering, offline cache) still open. **Goal:** full visual overhaul of the
 `commencys` Flutter app — Apple Liquid Glass (iOS 26 style) material system
 plus a map-centric home, replacing the current scroll-feed home.
 **Non-goals:** no backend, API-contract, or ticket-lifecycle changes

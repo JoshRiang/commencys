@@ -12,7 +12,8 @@ nav_order: 1
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-Community early-response platform: **one-tap SOS with GPS**, incident
+Community early-response platform: **one-tap SOS with GPS**, **voice SOS**
+(mic hold-to-record → STT, P1 fail-safe), incident
 reporting, geospatial alerts, WebSocket coordination, and an OSM map
 (Flutter `flutter_map`), backed by a **FastAPI** service with async
 IndoBERT urgency classification + DBSCAN dedup, PostGIS-ready storage,
@@ -26,11 +27,12 @@ and OSRM ETAs.
 | | |
 |---|---|
 | **Platform** | Android app (Flutter) + FastAPI backend |
-| **Hot path** | SOS → persist → acknowledge in **strictly < 5 s** (P1 fail-safe, AI never downgrades) |
+| **Hot path** | SOS + voice SOS → persist → acknowledge in **strictly < 5 s** (P1 fail-safe, AI never downgrades) |
 | **Live channel** | WebSocket `/ws/alerts` with auto-reconnect + REST re-sync |
 | **AI** | Heuristic-v2 triage (advisory-only urgency + DBSCAN-lite clustering), async only — never on the SOS path; coordinator review queue + correct/split + audit trail |
 | **Map** | Map-as-home liquid-glass shell: `AppShell` + floating glass tab bar, full-bleed live map, in-app server setting |
-| **Status** | v1.2.0 live + dispatch work after: backend supervised on `:8791`, CI-baked `API_BASE=http://100.89.180.23:8791`, 24/24 + 5/5 + 7/7 tests green, versioned APKs |
+| **Alerts** | P1 invites surface as full-screen alerts (`/p1-invite` via `AppNav.key`): full-screen intent + insistent sound + vibration; plain-language urgency (P1 Segera/NOW) |
+| **Status** | v1.3.0 live — voice SOS + P1 invites after: backend supervised on `:8791`, CI-baked public `API_BASE`, 28/28 + 5/5 + 7/7 + 3/3 tests green, versioned APKs |
 | **Team** | Reinathan Ezkhiel Kurniawan (Mobile / SOS) · Alwahib Raffi Raihan (Map & geolocation) · Joshua Ricardo Riangkamang (Backend client & alerts) |
 
 ## How these docs are organized
@@ -43,8 +45,8 @@ used to build Commencys — each phase signs off before the next begins:
 | 0 · Charter | [Planning](00-planning.md) | Problem, MVP scope, milestones, risks |
 | 1 · Requirements | [Requirements Analysis](01-analysis.md) | Acceptance criteria C1–C4, FR/NFR |
 | 2 · Design | [System Design](02-design.md) | Architecture, lifecycle, taxonomy |
-| 3 · Build | [Implementation](03-implementation.md) | What was built, file by file (incl. map shell `6967487` + AI triage `65409f0`) |
-| 4 · Verify | [Verification & Testing](04-testing.md) | Test layers (24/24 + 5/5 + 7/7), traceability, QA |
+| 3 · Build | [Implementation](03-implementation.md) | What was built, file by file (incl. map shell `6967487` + AI triage `65409f0` + voice SOS / P1 invites `8425985`) |
+| 4 · Verify | [Verification & Testing](04-testing.md) | Test layers (28/28 + 5/5 + 7/7 + 3/3), traceability, QA |
 | 5 · Ship | [Deployment](05-deployment.md) | Backend + phone install, releases (1.0.0 → 1.2.0) |
 | 6 · Operate | [Maintenance & SOPs](06-maintenance.md) | Coordinator SOPs, model lifecycle |
 
@@ -59,7 +61,7 @@ Reference appendices: [API contract](api-contract.md) ·
 # Backend (needs Python 3.11+)
 cd backend && pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000   # local dev; live supervised backend serves :8791
-pytest -q   # 24/24 (7 contract + 6 AI guards + 11 volunteer/dispatch/Laya guards)
+pytest -q   # 28/28 (7 contract + 6 AI guards + 11 volunteer/dispatch/Laya guards + 4 voice-SOS guards)
 
 # Mobile (needs Flutter SDK)
 flutter pub get
@@ -101,6 +103,7 @@ Details in [System Design](02-design.md) and [AI stations](ai-stations.md).
 | Method & path | Result |
 |---|---|
 | `POST /api/sos` | 201 acknowledged ticket, strictly **< 5 s** (P1 fail-safe) |
+| `POST /api/sos-voice` | 201 voice SOS (multipart `audio` + GPS → STT + offline ID→EN → same P1 fail-safe; 15 s budget) |
 | `POST /api/incidents` | 201 acknowledged ticket |
 | `GET /api/incidents` | List of tickets |
 | `POST /api/incidents/{id}/dispatch` | acknowledged/broadcast → dispatched |
