@@ -1,172 +1,95 @@
-import 'dart:convert';
-
+// Batas REST aplikasi Flutter pelapor dan API Commencys.
+// Dashboard admin memiliki klien JavaScript; widget relawan memiliki batas Android native.
+// Metode di sini hanya mencakup baca/pengiriman konsumen dan rute pascapenerimaan tugas.
 import 'package:http/http.dart' as http;
 
-import '../models/incident.dart';
 import 'app_config.dart';
 
-/// HTTP client for the Commencys FastAPI backend (see docs/api-contract.md).
 class ApiClient {
-  /// Hard ceiling per request so a phone on a dead network fails fast
-  /// (10 s) instead of hanging the UI indefinitely.
+  // Batas waktu rancangan untuk permintaan REST; belum diterapkan tanpa transport aktif.
   static const requestTimeout = Duration(seconds: 10);
 
-  final String baseUrl;
+  final String? _baseUrlOverride;
   final http.Client _client;
 
+  // Terima URL dasar dan klien HTTP agar dependensi mudah diganti saat pengujian.
+  // Klien yang diberikan menjadi milik instance ini dan ditutup melalui dispose().
   ApiClient({String? baseUrl, http.Client? client})
-      : baseUrl = baseUrl ?? AppConfig.baseUrl,
+      : _baseUrlOverride = baseUrl,
         _client = client ?? http.Client();
 
-  Future<List<Incident>> fetchIncidents() async {
-    final res = await _client
-        .get(Uri.parse('$baseUrl/api/incidents'))
-        .timeout(requestTimeout);
-    if (res.statusCode != 200) {
-      throw Exception('Failed to load incidents (${res.statusCode})');
-    }
-    final List<dynamic> data = jsonDecode(res.body) as List<dynamic>;
-    return data
-        .map((e) => Incident.fromJson(e as Map<String, dynamic>))
-        .toList();
+  // Pilih URL khusus instance terlebih dahulu, lalu gunakan konfigurasi aplikasi.
+  // Nilai ini belum menjamin server dapat dijangkau atau mendukung rute Commencys.
+  String get baseUrl => _baseUrlOverride ?? AppConfig.baseUrl;
+
+  // GET /api/incidents; kembalikan daftar laporan yang boleh dilihat pengguna.
+  // Kredensial berasal dari sesi pengguna; server membatasi laporan dan lokasi yang terlihat.
+  // Implementasi kelak menangani status HTTP, batas waktu, dan bentuk respons API.
+  Future<List<Map<String, dynamic>>> fetchIncidents({
+    required String authorizationHeader,
+  }) async {
+    throw UnimplementedError(
+        'Pembacaan daftar laporan belum diimplementasikan');
   }
 
-  Future<Incident> createIncident({
+  // GET /api/incidents/{ticketId}; ambil satu laporan yang dapat diakses pemanggil.
+  // Kredensial berasal dari sesi pengguna; ID pada rute tidak membuktikan hak akses.
+  // Implementasi kelak membedakan respons tidak ditemukan dan kegagalan layanan.
+  Future<Map<String, dynamic>> fetchIncident({
+    required String ticketId,
+    required String authorizationHeader,
+  }) async {
+    throw UnimplementedError(
+        'Pembacaan rincian laporan belum diimplementasikan');
+  }
+
+  // POST /api/incidents dengan isi, tingkat keparahan, dan sumber koordinat pelapor.
+  // Respons JSON hanya boleh dianggap tanda terima setelah server menyimpan laporan.
+  // Isian GPS atau manual harus berasal dari pilihan yang dapat dijelaskan kepada pengguna.
+  Future<Map<String, dynamic>> createIncident({
     required String title,
     required String description,
     required String category,
     required double latitude,
     required double longitude,
     double? accuracyM,
+    required String locationSource,
     required String severity,
     required String reporterName,
   }) async {
-    final res = await _client
-        .post(
-          Uri.parse('$baseUrl/api/incidents'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'title': title,
-            'description': description,
-            'category': category,
-            'latitude': latitude,
-            'longitude': longitude,
-            'accuracy_m': accuracyM,
-            'severity': severity,
-            'reporter_name': reporterName,
-          }),
-        )
-        .timeout(requestTimeout);
-    if (res.statusCode != 200 && res.statusCode != 201) {
-      throw Exception('Failed to create incident (${res.statusCode})');
-    }
-    return Incident.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+    throw UnimplementedError('Pengiriman laporan belum diimplementasikan');
   }
 
-  /// One-tap SOS. Server persists + acknowledges (< 5 s) with P1 fail-safe
-  /// urgency until triage; returns the stored ticket (criterion 2).
-  Future<Incident> sendSos({
+  // POST /api/sos dan kirim idempotencyKey agar percobaan ulang tidak membuat SOS ganda.
+  // Tanda terima berarti laporan tersimpan; tidak membuktikan pemberitahuan atau bantuan.
+  // Jalur ini tidak boleh menunggu triase AI, pengelompokan, atau layanan rute.
+  Future<Map<String, dynamic>> sendSos({
+    required String idempotencyKey,
     required double latitude,
     required double longitude,
     double? accuracyM,
+    required String locationSource,
     String? description,
     required String reporterName,
   }) async {
-    final res = await _client
-        .post(
-          Uri.parse('$baseUrl/api/sos'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'latitude': latitude,
-            'longitude': longitude,
-            'accuracy_m': accuracyM,
-            'description': description,
-            'reporter_name': reporterName,
-          }),
-        )
-        .timeout(requestTimeout);
-    if (res.statusCode != 200 && res.statusCode != 201) {
-      throw Exception('Failed to send SOS (${res.statusCode})');
-    }
-    return Incident.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+    throw UnimplementedError('Pengiriman SOS belum diimplementasikan');
   }
 
-  /// Volunteer accepts a ticket: acknowledged/broadcast → dispatched.
-  Future<Incident> dispatch({
-    required String ticketId,
-    required String volunteer,
+  // GET /api/eta untuk peta setelah widget relawan mengonfirmasi penerimaan tugas.
+  // Sertakan kredensial sesi; server memeriksa tugas yang diterima sebelum menghitung rute.
+  // Handoff intent dari widget ke layar peta belum tersedia; ETA tetap sebuah perkiraan.
+  Future<Map<String, dynamic>> fetchEta({
+    required String incidentId,
+    required double fromLatitude,
+    required double fromLongitude,
+    required String authorizationHeader,
   }) async {
-    final res = await _client
-        .post(
-          Uri.parse('$baseUrl/api/incidents/$ticketId/dispatch'
-              '?volunteer=${Uri.encodeComponent(volunteer)}'),
-        )
-        .timeout(requestTimeout);
-    if (res.statusCode != 200) {
-      throw Exception('Failed to dispatch (${res.statusCode})');
-    }
-    return Incident.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+    throw UnimplementedError('Estimasi rute belum diimplementasikan');
   }
 
-  /// Coordinator triage inbox: tickets AI flagged for human review.
-  Future<List<Incident>> fetchReviewQueue() async {
-    final res = await _client
-        .get(Uri.parse('$baseUrl/api/review-queue'))
-        .timeout(requestTimeout);
-    if (res.statusCode != 200) {
-      throw Exception('Failed to load review queue (${res.statusCode})');
-    }
-    final List<dynamic> data = jsonDecode(res.body) as List<dynamic>;
-    return data
-        .map((e) => Incident.fromJson(e as Map<String, dynamic>))
-        .toList();
+  // Tutup klien HTTP instance ini agar koneksi dan sumber daya transport dilepas.
+  // Pemanggil tidak boleh memakai kembali klien setelah shell aplikasi dibuang.
+  void dispose() {
+    _client.close();
   }
-
-  /// Coordinator correction — metadata only, raw report stays immutable.
-  Future<Incident> correctTicket({
-    required String ticketId,
-    String? aiCategory,
-    String? urgency,
-  }) async {
-    final res = await _client
-        .post(
-          Uri.parse('$baseUrl/api/incidents/$ticketId/correct'),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'ai_category': aiCategory,
-            'urgency': urgency,
-          }),
-        )
-        .timeout(requestTimeout);
-    if (res.statusCode != 200) {
-      throw Exception('Failed to correct ticket (${res.statusCode})');
-    }
-    return Incident.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
-  }
-
-  /// Reversible clustering: clear this ticket's cluster link.
-  Future<Incident> splitCluster({required String ticketId}) async {
-    final res = await _client
-        .post(Uri.parse('$baseUrl/api/incidents/$ticketId/split'))
-        .timeout(requestTimeout);
-    if (res.statusCode != 200) {
-      throw Exception('Failed to split cluster (${res.statusCode})');
-    }
-    return Incident.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
-  }
-
-  /// Immutable audit trail for one ticket (spec station 9).
-  Future<List<Map<String, dynamic>>> fetchAudit(String ticketId) async {
-    final res = await _client
-        .get(Uri.parse(
-            '$baseUrl/api/audit?incident_id=${Uri.encodeComponent(ticketId)}'))
-        .timeout(requestTimeout);
-    if (res.statusCode != 200) {
-      throw Exception('Failed to load audit (${res.statusCode})');
-    }
-    final List<dynamic> data = jsonDecode(res.body) as List<dynamic>;
-    return data.map((e) => e as Map<String, dynamic>).toList();
-  }
-
-  void dispose() => _client.close();
 }

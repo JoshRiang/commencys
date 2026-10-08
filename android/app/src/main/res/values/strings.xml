@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Label yang dipakai layout widget; teks tidak menyatakan SOS telah dikirim. -->
+<resources>
+    <string name="widget_title">Commencys</string>
+    <string name="widget_description">Kerangka pintasan laporan darurat komunitas.</string>
+    <string name="widget_action">Tindakan belum tersedia</string>
+    <string name="volunteer_widget_title">Tugas relawan</string>
+    <string name="volunteer_widget_description">Ringkasan, lokasi, dan urgensi tampil setelah akun relawan terhubung.</string>
+    <string name="volunteer_widget_accept">Terima tugas</string>
+    <string name="volunteer_widget_reject">Tolak tugas</string>
+</resources>

@@ -4,19 +4,29 @@ publish_to: 'none'
 version: 1.1.0+2
 
 environment:
-  sdk: '>=3.2.0 <4.0.0'
+  sdk: '>=3.10.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.6
+  # Map rendering and coordinate values for the report map/location-picker boundary.
   flutter_map: ^6.1.0
   latlong2: ^0.9.0
+  # Device coordinates; manual point selection remains a separate fallback.
   geolocator: ^12.0.0
+  # Reserved transport for live status updates; no connection is opened by the scaffold.
   web_socket_channel: ^3.0.1
+  # REST transport for the Flutter reporter and post-acceptance route view.
   http: ^1.2.0
+  # Localized date/time formatting when report timestamps are rendered.
   intl: ^0.19.0
+  # Native OAuth 2.0 / OpenID Connect authorization-code flow for Keycloak.
+  # The client is public and is expected to use PKCE; no client secret belongs here.
+  flutter_appauth: ^12.1.0
+  # Platform secure storage seam for short-lived identity tokens and refresh state.
+  flutter_secure_storage: ^11.2.0
 
+# Test and lint packages are for the Flutter client; current UI workflows remain scaffolded.
 dev_dependencies:
   flutter_test:
     sdk: flutter

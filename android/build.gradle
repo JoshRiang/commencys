@@ -1,3 +1,4 @@
+// Resolve Android and Kotlin plugins from the standard public repositories.
 allprojects {
     repositories {
         google()
@@ -5,6 +6,7 @@ allprojects {
     }
 }
 
+// Keep generated Gradle outputs under android/build so the repository root stays uncluttered.
 rootProject.buildDir = "../build"
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
@@ -13,6 +15,7 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
+// Remove only generated Gradle outputs when the team runs the clean task.
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }

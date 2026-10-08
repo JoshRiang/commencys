@@ -1,58 +1,36 @@
 ---
 layout: default
-title: Docs contents
+title: DOCS CONTENTS
 nav_order: 2
 nav_exclude: true
 ---
 
-# Commencys docs
+# DOCUMENTATION CONTENTS
 
-Start here: [Home](index.md) · [SDLC — Waterfall](sdlc-waterfall.md) ·
-[Repo README](https://github.com/JoshRiang/commencys#readme) ·
-[API contract](api-contract.md) ·
-[Phone install](05-deployment.md#phone-install)
+Start with the [documentation home](INDEX.md). It describes the current scaffold separately from the intended system in the project chapters.
 
-## Waterfall phases
+## PROJECT AND IMPLEMENTATION
 
-| # | Doc | What it covers |
-|---|-----|----------------|
-| 0 | [Planning](00-planning.md) | charter: problem, MVP scope, milestones, risks |
-| 1 | [Requirements Analysis](01-analysis.md) | acceptance criteria C1–C4, FR/NFR, gap map |
-| 2 | [System Design](02-design.md) | lifecycle, architecture diagram, data flow |
-| 3 | [Implementation](03-implementation.md) | what was built, file pointers, UI reskin `a811497` |
-| 4 | [Verification & Testing](04-testing.md) | test layers, latest CI evidence, QA checklist |
-| 5 | [Deployment](05-deployment.md) | backend + phone install, release history (1.0.0, 1.1.0) |
-| 6 | [Maintenance & SOPs](06-maintenance.md) | coordinator SOPs, review cadence |
+| Document | Coverage |
+|---|---|
+| [Planning](00-PLANNING.md) | Scope, ownership gaps, proposed milestones, and risks |
+| [Requirements analysis](01-ANALYSIS.md) | User goals and current source boundary |
+| [Design](02-DESIGN.md) | Scaffold architecture and target requirements |
+| [Implementation](03-IMPLEMENTATION.md) | Source modules and explicit placeholders |
+| [Verification](04-TESTING.md) | Deferred behavioral checks and static checks |
+| [Deployment](05-DEPLOYMENT.md) | Local scaffold startup and limits |
+| [Maintenance](06-MAINTENANCE.md) | Requirements before operational use |
+| [SDLC flow](SDLC-LIGHTWEIGHT-SCRUM.md) | Iterative project artifacts and traceability |
 
-## Reference
+## TECHNICAL REFERENCES
 
-| Doc | What it covers |
-|-----|----------------|
-| [API Contract](api-contract.md) | REST + WebSocket reference |
-| [DB Schema](db-schema.md) | PostgreSQL/PostGIS DDL |
-| [AI Stations Mapping](ai-stations.md) | 9-station AI architecture mapping |
-| [Technical Decisions](decisions.md) | key technical decisions + trade-offs |
+| Document | Coverage |
+|---|---|
+| [API surface](API-CONTRACT.md) | Route shapes, intended payload fields, and current 501 responses |
+| [Target persistence sketch](DB-SCHEMA.md) | Inactive store boundary and proposed database schema, including separate offers and delivery records |
+| [AI interfaces](AI-STATIONS.md) | Laya candidate and related-report analysis prerequisites |
+| [Decisions](DECISIONS.md) | Settled interface split and open technical/service decisions |
+| [Evaluation](EVALUATION-MONITORING.md) | Measures and data required before claims |
+| [Guardrails](GUARDRAILS.md) | Current non-operational status and safety requirements |
 
-## Quality & Governance
-
-| Doc | What it covers |
-|-----|----------------|
-| [Evaluation & Monitoring](evaluation-monitoring.md) | metrics, targets, instruments |
-| [Guardrails & Responsible AI](guardrails.md) | responsible-AI rules |
-
-## Architecture
-
-![Architecture](architecture.png)
-
-```mermaid
-flowchart LR
-    W["Resident SOS + GPS"] --> API["FastAPI: REST + WS gateway"]
-    API --> DB[("PostgreSQL/PostGIS")]
-    API --> AI["IndoBERT triage + DBSCAN dedup (async)"]
-    AI --> DB
-    API --> OSRM["OSRM ETA"]
-    API --> V["Volunteers + coordinator (live WS)"]
-```
-
-Source of truth for the diagram: [`architecture.mmd`](architecture.mmd)
-(rendered to [`architecture.png`](architecture.png)).
+The diagrams and chapters under `HISTORY_TRACE/RESULT` describe project analysis and target design. They do not prove that the code runs those workflows.

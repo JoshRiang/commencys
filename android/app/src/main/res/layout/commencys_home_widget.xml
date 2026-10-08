@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget konsumen ringkas; bukan dashboard dan tidak memuat data kejadian. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/commencys_widget_surface"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <!-- Nama aplikasi sebagai identitas widget. -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/widget_title"
+        android:textColor="#202522"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <!-- Keterangan menjelaskan batas scaffold tanpa membuat status bantuan palsu. -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center_vertical"
+        android:paddingTop="4dp"
+        android:paddingBottom="8dp"
+        android:text="@string/widget_description"
+        android:textColor="#667069"
+        android:textSize="12sp" />
+
+    <!-- Tombol dipertahankan sebagai target aksi, tetapi dinonaktifkan hingga alur aman. -->
+    <Button
+        android:id="@+id/widget_sos_action"
+        android:layout_width="match_parent"
+        android:layout_height="42dp"
+        android:background="@drawable/commencys_widget_action"
+        android:enabled="false"
+        android:gravity="center"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:text="@string/widget_action"
+        android:textAllCaps="false"
+        android:textColor="#FFFFFF"
+        android:textSize="13sp"
+        android:textStyle="bold" />
+</LinearLayout>

@@ -1,0 +1,7 @@
+-r requirements.txt
+
+# Optional triage and candidate-clustering dependencies. Installing these does not
+# download Laya weights or make inference part of report intake.
+laya>=0.4.0,<0.5
+huggingface-hub>=0.23,<2
+scikit-learn>=1.5,<2

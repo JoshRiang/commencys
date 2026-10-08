@@ -1,33 +1,28 @@
-/// Runtime backend endpoint configuration.
-///
-/// Defaults target the Android emulator (`10.0.2.2` routes to the host
-/// loopback). On a physical phone, open the server setting (app-bar icon on
-/// the home screen) and enter the backend address on the local network, e.g.
-/// `http://192.168.1.10:8000`. A compile-time default can also be baked in:
-///
-/// ```sh
-/// flutter build apk --release --dart-define=API_BASE=http://192.168.1.10:8000
-/// ```
+// Konfigurasi alamat layanan yang dibaca oleh adapter REST dan WebSocket.
+// Penyimpanan pilihan pengguna dan pemetaan URL per platform belum diputuskan.
 class AppConfig {
-  static const defaultBaseUrl = String.fromEnvironment(
+  // Nilai awal untuk emulator Android; bukan alamat produksi atau bukti server aktif.
+  // Dapat diganti saat proses build melalui argumen API_BASE.
+  static const String defaultBaseUrl = String.fromEnvironment(
     'API_BASE',
     defaultValue: 'http://10.0.2.2:8000',
   );
 
-  static String baseUrl = defaultBaseUrl;
+  // Baca alamat yang dikompilasi sampai penyimpanan konfigurasi disepakati.
+  // Saat ini setter tidak menyimpan perubahan dan getter selalu memakai nilai awal.
+  static String get baseUrl => defaultBaseUrl;
 
-  /// `http(s)://host:port` → `ws(s)://host:port/ws/alerts`.
-  static String wsUrlFor(String base) {
-    final uri = Uri.parse(base);
-    final scheme = uri.scheme == 'https' ? 'wss' : 'ws';
-    final host = uri.host.isEmpty ? '10.0.2.2' : uri.host;
-    final port = uri.hasPort ? ':${uri.port}' : '';
-    return '$scheme://$host$port/ws/alerts';
+  // Simpan URL pilihan pengguna setelah format, persistensi, dan validasinya disepakati.
+  // Parameter value adalah alamat backend; setter saat ini sengaja tidak mengubah state.
+  static void setBaseUrl(String value) {
+    throw UnimplementedError(
+        'Penyimpanan alamat server belum diimplementasikan');
   }
 
-  static String get wsUrl => wsUrlFor(baseUrl);
-
-  static void setBaseUrl(String value) {
-    baseUrl = value.trim().replaceAll(RegExp(r'/+$'), '');
+  // Ubah skema HTTP(S) menjadi WS(S) dan pertahankan host serta path yang diperlukan.
+  // Kebijakan path, query, dan validasi URL harus ditetapkan sebelum implementasi.
+  static String wsUrlFor(String baseUrl) {
+    throw UnimplementedError(
+        'Pembentukan alamat WebSocket belum diimplementasikan');
   }
 }

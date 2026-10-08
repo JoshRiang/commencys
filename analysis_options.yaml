@@ -1,1 +1,7 @@
+# Exclude generated or non-Dart sources from Flutter's Dart analyzer.
+analyzer:
+  exclude:
+    - build/**
+    - android/**
+    - web/**
 include: package:flutter_lints/flutter.yaml

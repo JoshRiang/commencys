@@ -1,0 +1,5 @@
+# Dependencies for rendering the chapter DOCX/PDF files and raster diagrams.
+# Install separately from runtime packages unless the team is rebuilding those artifacts.
+Pillow>=10,<13
+python-docx>=1.1,<2
+reportlab>=4.2,<5

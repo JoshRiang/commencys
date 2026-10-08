@@ -1,99 +1,49 @@
+// Batas koneksi pembaruan status untuk aplikasi Flutter; dashboard mengelola kliennya sendiri.
+// Stream status tidak menggantikan API keputusan tugas dan belum aktif pada scaffold.
 import 'dart:async';
-import 'dart:convert';
-import 'dart:math';
 
-import 'package:web_socket_channel/web_socket_channel.dart';
-
-import '../models/incident.dart';
-import 'app_config.dart';
-
-/// WebSocket coordination channel for live incident alerts.
-///
-/// Implements the spec §3 trade-off: auto-reconnect with exponential backoff
-/// on flaky mobile networks, plus REST re-sync via [fetchIncidents].
-/// Server frames follow docs/api-contract.md (`incident.*` events).
 class CoordinationSocket {
-  final String url;
-  WebSocketChannel? _channel;
-  final _controller = StreamController<Map<String, dynamic>>.broadcast();
-  final _statusController = StreamController<IncidentStatus>.broadcast();
-  Timer? _reconnectTimer;
-  int _attempt = 0;
-  bool _disposed = false;
+  final String? _urlOverride;
 
-  CoordinationSocket({String? url}) : url = url ?? AppConfig.wsUrl;
+  // Terima URL khusus agar pemilik koneksi dapat mengatur host per lingkungan.
+  // Konstruktor hanya menyimpan alamat dan tidak membuka soket jaringan.
+  CoordinationSocket({String? url}) : _urlOverride = url;
 
-  Stream<Map<String, dynamic>> get messages => _controller.stream;
+  // Tampilkan alamat yang akan dipakai saat adapter transport dibuat.
+  // Nilai null berarti konfigurasi belum diberikan kepada instance ini.
+  String? get configuredUrl => _urlOverride;
 
-  /// Parsed lifecycle transitions from `incident.*` frames.
-  Stream<IncidentStatus> get statuses => _statusController.stream;
+  // Nyatakan keadaan sambungan aktual setelah koneksi dan siklus hidup diimplementasikan.
+  // Nilai tetap false pada scaffold, bukan pemeriksaan kesehatan server.
+  bool get isConnected => false;
 
-  bool get isConnected => _channel != null;
+  // Ekspos aliran frame JSON untuk status laporan, penugasan, dan pemberitahuan.
+  // Frame kelak harus divalidasi dan disinkronkan ulang melalui REST setelah reconnect.
+  Stream<Map<String, dynamic>> get messages {
+    throw UnimplementedError(
+        'Penerimaan pesan langsung belum diimplementasikan');
+  }
 
+  // Buka koneksi setelah autentikasi dan aturan penerima tersedia.
+  // Koneksi aktif tidak boleh dianggap sebagai bukti pesan telah dibaca.
   void connect() {
-    if (_disposed) return;
-    disconnect();
-    try {
-      _channel = WebSocketChannel.connect(Uri.parse(url));
-      _attempt = 0;
-      _channel!.stream.listen(
-        (event) {
-          try {
-            final decoded = jsonDecode(event as String);
-            if (decoded is Map<String, dynamic>) {
-              _controller.add(decoded);
-              final status = _statusFromFrame(decoded);
-              if (status != null) _statusController.add(status);
-            }
-          } catch (_) {
-            // Ignore malformed frames.
-          }
-        },
-        onDone: _scheduleReconnect,
-        onError: (_) => _scheduleReconnect(),
-      );
-    } catch (_) {
-      _scheduleReconnect();
-    }
+    throw UnimplementedError('Koneksi notifikasi belum diimplementasikan');
   }
 
-  IncidentStatus? _statusFromFrame(Map<String, dynamic> frame) {
-    final type = frame['type']?.toString() ?? '';
-    if (type == 'incident.sos' || type == 'incident.created') {
-      return IncidentStatus.acknowledged;
-    }
-    final status = frame['status']?.toString();
-    if (status == null) return null;
-    for (final s in IncidentStatus.values) {
-      if (s.name == status) return s;
-    }
-    return null;
-  }
-
-  void _scheduleReconnect() {
-    _channel = null;
-    if (_disposed) return;
-    _reconnectTimer?.cancel();
-    // Exponential backoff capped at 30 s (flaky-network trade-off, spec D3).
-    final delay = Duration(seconds: min(1 << min(_attempt, 5), 30));
-    _attempt++;
-    _reconnectTimer = Timer(delay, connect);
-  }
-
+  // Kirim pesan protokol yang telah disepakati melalui koneksi aktif.
+  // Pemanggil harus menangani koneksi putus dan tidak menyamakan kirim dengan terima.
   void send(Map<String, dynamic> message) {
-    _channel?.sink.add(jsonEncode(message));
+    throw UnimplementedError(
+        'Pengiriman pesan langsung belum diimplementasikan');
   }
 
+  // Hentikan penerimaan pesan dan tutup transport secara teratur setelah digunakan.
   void disconnect() {
-    _reconnectTimer?.cancel();
-    _channel?.sink.close();
-    _channel = null;
+    throw UnimplementedError('Penutupan koneksi belum diimplementasikan');
   }
 
+  // Lepaskan stream dan transport yang dimiliki instance ketika pemiliknya dibuang.
   void dispose() {
-    _disposed = true;
-    disconnect();
-    _controller.close();
-    _statusController.close();
+    // Belum ada sumber daya jaringan yang dibuka pada kerangka ini.
   }
 }

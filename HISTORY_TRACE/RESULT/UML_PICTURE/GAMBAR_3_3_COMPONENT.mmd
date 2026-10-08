@@ -1,0 +1,55 @@
+flowchart LR
+  subgraph Client["Widget pelapor dan aplikasi konsumen"]
+    Widget["«component» Widget pelapor Android<br/>Pintu masuk laporan dan SOS"]
+    Flow["«component» Alur pelaporan Flutter<br/>Formulir dan pengiriman"]
+  end
+
+  subgraph Volunteer["Widget relawan"]
+    TaskWidget["«component» Widget tugas Android<br/>Lihat penawaran; terima atau tolak"]
+  end
+
+  subgraph Operator["Permukaan admin"]
+    Dashboard["«component» Dashboard admin<br/>Peninjauan dan koordinasi manusia"]
+  end
+
+  subgraph Application["Lapisan aplikasi"]
+    API["«component» API FastAPI"]
+    Access["«component» Kebijakan akses dan peran"]
+    Incident["«component» Pengelolaan laporan dan status"]
+    Notify["«component» Pemberitahuan terarah<br/>Penerima dan tanda terima perlu ditetapkan"]
+  end
+
+  subgraph Analysis["Layanan analisis pendukung"]
+    Laya["«component» Laya Multilingual<br/>Kandidat; saran triase"]
+    DBSCAN["«component» DBSCAN<br/>Kandidat kaitan lokasi dan waktu"]
+  end
+
+  subgraph Persistence["Penyimpanan sasaran"]
+    Data["«component» PostgreSQL dan PostGIS<br/>Laporan sumber dan data lokasi"]
+    Audit["«component» Riwayat perubahan persisten"]
+  end
+
+  subgraph External["Layanan eksternal"]
+    OSRM["«component» OSRM<br/>Rute dan ETA setelah penugasan diterima"]
+  end
+
+  Widget -->|membuka alur| Flow
+  Flow -->|REST| API
+  TaskWidget -->|umpan tugas dan keputusan relawan melalui REST| API
+  Dashboard -->|REST dan WebSocket| API
+  Notify -.->|status update| Dashboard
+  API -.-> Access
+  API --> Incident
+  Incident -.->|validasi dan status| Data
+  Incident -.->|catatan perubahan| Audit
+  Incident -.->|tugas analisis setelah simpan| Laya
+  Incident -.->|pencarian kandidat terkait| DBSCAN
+  Laya -.->|saran, tidak mengubah laporan sumber| Data
+  DBSCAN -.->|tautan kandidat yang dapat ditinjau| Data
+  Incident -.->|admin menyetujui penawaran| Notify
+  Notify -.->|penawaran tugas| TaskWidget
+  Incident -.->|setelah penerimaan penugasan| OSRM
+  OSRM -.->|perkiraan perjalanan| API
+
+  classDef proposed fill:#F4F0FA,stroke:#70579B,stroke-width:2px,stroke-dasharray:6 4,color:#1C2B3A
+  class Access,Notify,Laya,DBSCAN,Data,Audit,OSRM proposed

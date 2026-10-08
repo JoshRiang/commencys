@@ -1,0 +1,26 @@
+flowchart LR
+    Start((Mulai)) --> Location(["«interactionUse» Pilih lokasi kejadian"])
+    Location --> Submit(["«interactionUse» Kirim laporan atau SOS"])
+    Submit --> Valid{Data dan lokasi valid?}
+    Valid -->|Tidak| Reject[Berikan pesan gagal; jangan buat tanda terima]
+    Reject --> EndReject((Selesai))
+    Valid -->|Ya| Store(["«interactionUse» Simpan laporan sumber"])
+    Store --> Receipt[Kirim tanda terima setelah penyimpanan berhasil]
+    Receipt --> Fork[[Analisis pendukung, berjalan terpisah]]
+    Fork --> Laya(["«interactionUse» Laya Multilingual memberi saran"])
+    Fork --> DBSCAN(["«interactionUse» DBSCAN mencari kandidat laporan terkait"])
+    %% Kegagalan analisis tidak membatalkan laporan yang sudah disimpan.
+    Laya --> Merge[[Kumpulkan keluaran yang tersedia]]
+    DBSCAN --> Merge
+    Merge --> ReviewNeeded{Perlu tinjauan manusia?}
+    ReviewNeeded -->|Ya| Review(["«interactionUse» Admin meninjau dan mengoreksi"])
+    ReviewNeeded -->|Tidak| Retain[Catat saran sebagai informasi pendukung]
+    Review --> Decision{Admin menyetujui penawaran tugas?}
+    Retain --> Decision
+    Decision -->|Belum| Queue[Tetap dalam antrean; belum ada penugasan]
+    Decision -->|Ya| Notify(["«interactionUse» Kirim pemberitahuan terarah"])
+    Notify --> Offer(["«interactionUse» Relawan meninjau tugas pada widget"])
+    Offer --> Accepted{Relawan memilih?}
+    Accepted -->|Tolak| Pending[Tugas tetap terbuka; admin melihat status]
+    Accepted -->|Terima| Assign[Penugasan diterima]
+    Assign --> Route(["«interactionUse» Tampilkan rute dan ETA sebagai perkiraan"])

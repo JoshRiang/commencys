@@ -1,64 +1,93 @@
+// Shell navigasi untuk permukaan konsumen; dashboard human-in-the-loop terpisah di web.
 import 'package:flutter/material.dart';
 
 import 'screens/alerts_screen.dart';
-import 'screens/home_screen.dart';
 import 'screens/map_screen.dart';
 import 'screens/report_screen.dart';
 import 'screens/sos_screen.dart';
-import 'widgets/floating_tab_bar.dart';
+import 'services/api_client.dart';
+import 'services/websocket_service.dart';
 
-/// Map-centric app shell: the live map is the default home (center tab),
-/// floating above it a Liquid Glass tab bar. Non-map tabs get bottom
-/// clearance so content never hides behind the floating bar.
 class AppShell extends StatefulWidget {
+  // Terima tab awal; nilai 0-3 memilih peta, laporan, buat laporan, atau SOS.
+  // Pintasan SOS hanya membuka layar dan tidak menandakan laporan sudah terkirim.
   final int initialTab;
 
-  const AppShell({super.key, this.initialTab = 2});
+  const AppShell({super.key, this.initialTab = 0});
 
+  // Buat state yang mengelola tab dan siklus hidup dependensi aplikasi.
   @override
   State<AppShell> createState() => _AppShellState();
 }
 
 class _AppShellState extends State<AppShell> {
-  // Map is the home screen.
-  late int _index = widget.initialTab;
+  late int _index;
+  late final ApiClient _api;
+  late final CoordinationSocket _socket;
 
-  void _go(int i) => setState(() => _index = i);
+  // Buat adapter yang akan dibagikan oleh layar tanpa membuka koneksi jaringan.
+  // Indeks dibatasi agar nilai rute yang tidak valid tidak merusak navigasi.
+  @override
+  void initState() {
+    super.initState();
+    _index = widget.initialTab.clamp(0, 3).toInt();
+    _api = ApiClient();
+    _socket = CoordinationSocket();
+  }
 
+  // Lepaskan stream dan klien HTTP yang dimiliki shell sebelum widget dibuang.
+  @override
+  void dispose() {
+    _socket.dispose();
+    _api.dispose();
+    super.dispose();
+  }
+
+  // Perbarui tab aktif setelah interaksi navigasi atau callback layar selesai.
+  // Callback laporan belum dipanggil karena pengiriman belum tersedia.
+  void _go(int index) {
+    setState(() => _index = index);
+  }
+
+  // Susun layar konsumen dalam IndexedStack agar state tab tetap terjaga.
+  // NavigationBar adalah navigasi aplikasi, bukan dashboard operator atau situs pemasaran.
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBody: true,
       body: IndexedStack(
         index: _index,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(bottom: 96),
-            child: HomeScreen(),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(bottom: 96),
-            child: ReportScreen(onSubmitted: () => _go(3)),
-          ),
-          MapScreen(onSosPressed: () => _go(4)),
-          const Padding(
-            padding: EdgeInsets.only(bottom: 96),
-            child: AlertsScreen(),
-          ),
-          const Padding(
-            padding: EdgeInsets.only(bottom: 96),
-            child: SosScreen(),
-          ),
+          MapScreen(api: _api, socket: _socket),
+          AlertsScreen(api: _api, socket: _socket),
+          ReportScreen(api: _api, onSubmitted: () => _go(1)),
+          SosScreen(api: _api, socket: _socket),
         ],
       ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-          child: FloatingGlassTabBar(
-            currentIndex: _index,
-            onTap: _go,
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _index,
+        onDestinationSelected: _go,
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.map_outlined),
+            selectedIcon: Icon(Icons.map),
+            label: 'Peta',
           ),
-        ),
+          NavigationDestination(
+            icon: Icon(Icons.list_alt_outlined),
+            selectedIcon: Icon(Icons.list_alt),
+            label: 'Laporan',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.add_circle_outline),
+            selectedIcon: Icon(Icons.add_circle),
+            label: 'Buat',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.sos_outlined),
+            selectedIcon: Icon(Icons.sos),
+            label: 'SOS',
+          ),
+        ],
       ),
     );
   }

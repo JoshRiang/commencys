@@ -1,20 +1,37 @@
+%% Current source boundaries. Dotted links are intended interfaces, not active flows.
 flowchart LR
-    W["Warga<br/>SOS + manual pin"]
-    V["Relawan<br/>accept + ETA"]
-    K["Koordinator<br/>triage + correction"]
-    API["FastAPI<br/>REST + WS gateway"]
-    AI["IndoBERT + DBSCAN<br/>BackgroundTasks (async)"]
-    DB[("PostgreSQL/PostGIS<br/>incidents + audit")]
-    OSRM["OSRM<br/>route + ETA"]
+    subgraph Reporter["Reporter surface"]
+        Citizen[Citizen / reporter] --> Widget[Android reporter widget: report / SOS]
+        Widget -. disabled handoff .-> Mobile[Flutter report-flow shell]
+    end
 
-    W -->|"POST /api/sos<br/>&lt; 5 s ack"| API
-    V -->|"POST dispatch"| API
-    K -->|"review / split"| API
-    API -->|"persist"| DB
-    API -->|"enqueue"| AI
-    AI -->|"metadata only"| DB
-    API -->|"WS /ws/alerts"| V
-    API -->|"WS /ws/alerts"| K
-    API -->|"WS /ws/alerts"| W
-    API -->|"proxy"| OSRM
-    OSRM --> V
+    subgraph Volunteer["Volunteer surface"]
+        Responder[Volunteer] --> TaskWidget[Android task widget: view / accept / reject]
+    end
+
+    subgraph AdminSurface["Admin surface"]
+        Admin[Admin] --> Dashboard[Static admin dashboard]
+    end
+
+    subgraph Api["API boundary"]
+        API[FastAPI scaffold]
+        Health[Health: scaffold, ready false]
+        Payload[Raw JSON object payloads]
+        Operations[Operational route declarations]
+        API --> Health
+        API --> Payload
+        API -. HTTP 501 .-> Operations
+    end
+
+    subgraph Deferred["Imported service seams"]
+        Store[StateStore interface; inactive]
+        Laya[laya package imported; no router or weights]
+        DBSCAN[scikit-learn DBSCAN imported; no fit or clustering]
+    end
+
+    Mobile -. future REST / WebSocket calls .-> API
+    TaskWidget -. future task feed and decision calls .-> API
+    Dashboard -. future API calls .-> API
+    API -->|serves static assets| Dashboard
+    AI[ai_pipeline.py] --> Laya
+    AI --> DBSCAN

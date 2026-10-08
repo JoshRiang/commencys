@@ -1,0 +1,20 @@
+-- Kerangka migrasi target PostgreSQL/PostGIS untuk Commencys.
+-- File ini sengaja hanya berisi komentar sehingga tidak dapat membuat atau mengubah basis data.
+-- Tinjau retensi, penghapusan, enkripsi, indeks, dan hak akses sebelum menulis DDL aktif.
+-- Jangan masukkan identitas atau koordinat nyata ke fixture migrasi.
+--
+-- Urutan struktur yang perlu dirancang:
+-- 1. Extension PostGIS yang disetujui oleh pemilik layanan basis data.
+-- 2. Tabel laporan sumber dengan geometri, sumber lokasi, akurasi, status, dan waktu.
+-- 3. Kolom saran triase terpisah dari teks dan kategori asli pelapor.
+-- 4. Relasi kandidat antarlaporan yang dapat dihapus tanpa menghapus laporan sumber.
+-- 5. Penawaran per laporan dan relawan, beserta aktor admin, status, dan waktu keputusan.
+-- 6. Riwayat audit append-only untuk aktor, tindakan, alasan, nilai sebelum/sesudah, dan waktu.
+-- 7. Idempotensi SOS agar percobaan ulang tidak membuat laporan ganda.
+-- 8. Rekaman tiap percobaan pengiriman terpisah dari respons relawan terhadap penawaran.
+-- 9. Indeks ruang dan waktu sesuai kueri yang sudah diukur.
+-- 10. Kebijakan akses membatasi koordinat tepat sesuai peran reporter, volunteer, dan admin.
+-- 11. Resolusi hanya dicatat dari aktor terautentikasi yang diizinkan kebijakan.
+--
+-- Tabel, constraint, indeks, serta perintah up/down migration belum ditetapkan.
+-- SQL aktif hanya boleh ditambahkan setelah skema ditinjau terhadap docs/db-schema.md.

@@ -1,9 +1,12 @@
+<!-- Daftarkan host Flutter, izin integrasi, dan widget layar utama Commencys. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Izin ini dibutuhkan saat klien kelak menghubungi API dan kanal pembaruan. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Izin lokasi menjadi prasyarat pilihan GPS; pilihan manual tetap diperlukan. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
 
+    <!-- HTTP hanya untuk lingkungan pengembangan; rilis perlu keputusan TLS. -->
     <application
         android:label="Commencys"
         android:name="${applicationName}"
@@ -24,6 +27,32 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- Receiver menjaga bentuk integrasi widget; tindakan SOS dalam layout nonaktif. -->
+        <receiver
+            android:name=".CommencysWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/commencys_widget_info" />
+        </receiver>
+        <!-- Widget relawan menampilkan penawaran dan aksi eksplisit setelah integrasi tersedia. -->
+        <receiver
+            android:name=".CommencysVolunteerWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/commencys_volunteer_widget_info" />
+        </receiver>
+        <!-- Receiver privat menjadi tujuan aksi tombol widget relawan; alur masih kosong. -->
+        <receiver
+            android:name=".CommencysVolunteerWidgetActionReceiver"
+            android:exported="false" />
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />

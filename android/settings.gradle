@@ -1,3 +1,5 @@
+// Read the machine-local Flutter SDK path written by tools/bootstrap.ps1.
+// FLUTTER_ROOT remains a fallback for developers who configure it manually.
 pluginManagement {
     def flutterSdkPath = {
         def properties = new Properties()
@@ -22,6 +24,7 @@ pluginManagement {
     }
 }
 
+// Pin Android and Kotlin Gradle plugins so team builds use the same tool versions.
 plugins {
     id "dev.flutter.flutter-plugin-loader" version "1.0.0"
     id "com.android.application" version "8.13.0" apply false

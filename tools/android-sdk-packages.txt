@@ -1,0 +1,9 @@
+# Android SDK packages pinned to this repository's Flutter Android configuration.
+platform-tools
+platforms;android-36
+build-tools;36.0.0
+# Flutter's first Gradle resolution also requests this Android plugin compile target.
+platforms;android-35
+build-tools;35.0.0
+ndk;28.2.13676358
+cmake;3.22.1

@@ -1,0 +1,40 @@
+flowchart LR
+  subgraph Intake["Penerimaan laporan dan akses relawan"]
+    Reporter["Warga pelapor"] --> Widget["Widget pelapor: laporan dan SOS"]
+    Widget --> Flow["Alur pelaporan Flutter"]
+    Flow --> API["API dan alur insiden: validasi"]
+    API -->|simpan laporan sumber| Store[("PostgreSQL / PostGIS")]
+    Store -->|setelah transaksi tersimpan| API
+    API -->|tanda terima| Flow
+  end
+
+  Volunteer["Relawan"] --> VolunteerWidget["Widget relawan: lihat, terima, atau tolak tugas"]
+  VolunteerWidget -->|umpan tugas dan keputusan| API
+
+  subgraph Assist["Analisis pendukung setelah penyimpanan"]
+    Store -->|mulai setelah commit| Worker["Pemroses asinkron"]
+    Worker --> Laya["Laya Multilingual: saran jenis dan urgensi"]
+    Worker --> DBSCAN["PostGIS dan DBSCAN: kandidat laporan terkait"]
+    Laya --> Dashboard["Dashboard admin/operator: tinjauan manusia"]
+    DBSCAN --> Dashboard
+    Dashboard --> Decision["Koreksi dan keputusan oleh admin"]
+  end
+
+  subgraph Response["Koordinasi dan rute"]
+    Decision --> Status["Status dan penugasan"]
+    Status --> WS["WebSocket: pembaruan status"]
+    WS --> Users["Penerima pemberitahuan: pelapor dan relawan"]
+    Users -->|setelah pemberitahuan| Accept["Relawan menerima tugas"]
+    Accept -->|permintaan rute| OSRM["OSRM"]
+    OSRM --> Route["Rute dan ETA sebagai perkiraan"]
+  end
+
+  Receipt["Tanda terima, pemberitahuan, dan penerimaan tugas adalah status berbeda"]
+  Store -.-> Receipt
+
+  classDef intake fill:#EAF2F9,stroke:#2A6496,color:#15263A,stroke-width:2px
+  classDef assist fill:#F0ECF8,stroke:#7256A6,color:#15263A,stroke-width:2px
+  classDef coordination fill:#E9F4F1,stroke:#24786F,color:#15263A,stroke-width:2px
+  class Reporter,Widget,Flow,API,Store intake
+  class Worker,Laya,DBSCAN,Dashboard,Decision assist
+  class Status,WS,Users,Accept,OSRM,Route coordination

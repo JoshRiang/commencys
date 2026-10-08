@@ -1,0 +1,37 @@
+usecase-beta
+direction LR
+
+actor Citizen("Warga / pelapor")
+actor Volunteer("Relawan")
+actor Admin("Admin (operator dashboard)")
+
+systemBoundary Commencys("Commencys, rancangan sasaran")
+  Report("Mengirim laporan insiden")
+  SOS("Mengirim SOS")
+  Location("Menentukan lokasi kejadian")
+  Respond("Melihat dan menerima atau menolak tugas dari widget")
+  Route("Melihat rute dan perkiraan waktu")
+  Review("Meninjau laporan dan saran triase")
+  Correct("Mengoreksi kategori atau urgensi")
+  ReviewLinks("Meninjau atau memisahkan kaitan laporan")
+  ApproveOffer("Menyetujui dan memulai penawaran tugas")
+  UpdateStatus("Memperbarui status penanganan")
+  ManageAccess("Mengelola akses dan kebijakan")
+  AuditHistory("Meninjau riwayat perubahan")
+end
+
+Citizen --> Report
+Citizen --> SOS
+Report ..> Location : include
+SOS ..> Location : include
+
+Volunteer --> Respond
+Volunteer --> Route
+
+Admin --> ApproveOffer
+Admin --> Review
+Admin --> Correct
+Admin --> ReviewLinks
+Admin --> UpdateStatus
+Admin --> ManageAccess
+Admin --> AuditHistory

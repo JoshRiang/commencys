@@ -1,0 +1,49 @@
+{
+  "realm": "commencys",
+  "enabled": true,
+  "displayName": "Commencys Local Development",
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "verifyEmail": true,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "defaultRoles": ["reporter"],
+  "roles": {
+    "realm": [
+      { "name": "reporter", "description": "Default role for a registered reporter." },
+      { "name": "volunteer", "description": "Assigned by an administrator to an approved volunteer." },
+      { "name": "admin", "description": "Administrator role for the human review dashboard." }
+    ]
+  },
+  "smtpServer": {
+    "host": "mailpit",
+    "port": "1025",
+    "from": "no-reply@commencys.local",
+    "fromDisplayName": "Commencys local development",
+    "auth": "false",
+    "ssl": "false",
+    "starttls": "false"
+  },
+  "clients": [
+    {
+      "clientId": "commencys-mobile",
+      "name": "Commencys Flutter app",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["com.commencys.app:/oauthredirect"],
+      "webOrigins": [],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "com.commencys.app:/logout"
+      },
+      "defaultClientScopes": ["web-origins", "acr", "profile", "roles", "email"]
+    }
+  ]
+}

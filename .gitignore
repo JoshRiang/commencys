@@ -1,6 +1,8 @@
 
 *.apk
 backend/*.db
+backend/data/*.sqlite3*
+backend/.test-state/
 build/
 commencys_*.apk
 .dart_tool/
@@ -15,3 +17,14 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .venv/
+.env
+!.env.example
+.local/
+data/osrm/
+*.osm.pbf
+*.osrm
+*.osrm.*
+android/local.properties
+android/.gradle/
+# Keep the 154 MB reference-book source local; it exceeds GitHub's regular file-size limit.
+HISTORY_TRACE/PDF/Braude_SoftwareBook(Reference).pdf

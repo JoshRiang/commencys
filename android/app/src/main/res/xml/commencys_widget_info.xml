@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Metadata ukuran, tata letak awal, dan kategori widget layar utama konsumen. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/widget_description"
+    android:initialLayout="@layout/commencys_home_widget"
+    android:minHeight="120dp"
+    android:minWidth="180dp"
+    android:previewLayout="@layout/commencys_home_widget"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="0"
+    android:widgetCategory="home_screen" />

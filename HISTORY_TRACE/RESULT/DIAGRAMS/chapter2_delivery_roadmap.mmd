@@ -1,0 +1,34 @@
+flowchart LR
+  Baseline["Sepakati dasar<br/>Widget pelapor dan relawan, dashboard admin, lingkup, kapasitas<br/>Bukti: fungsi antarmuka dan kriteria disetujui"]
+  SOS["Utamakan alur SOS<br/>Lokasi, titik manual, simpan, tanda terima<br/>Bukti: uji pada perangkat dan jaringan"]
+  Coordination["Buktikan koordinasi<br/>Tawaran, pemberitahuan, terima/tolak dari widget, pemulihan REST<br/>Bukti: keputusan relawan dan pemulihan luring"]
+  AI["Evaluasi dukungan AI<br/>Laya Multilingual dan DBSCAN<br/>Data, versi, koreksi, tinjauan manusia"]
+  Readiness["Tinjau kesiapan<br/>Privasi, akses, pemulihan, dukungan<br/>Bukti: keputusan uji dan risiko sisa"]
+  Baseline --> SOS --> Coordination --> AI --> Readiness
+
+  subgraph Continuous["Pengendalian sepanjang pekerjaan"]
+    Risk["Risiko<br/>Pemicu, tanggapan, pemilik, bukti"]
+    Quality["Mutu dan verifikasi<br/>Kriteria, lingkungan, metrik, hasil"]
+    Capacity["Kapasitas dan peran<br/>Penanggung jawab, pengganti, dependensi"]
+    Change["Keputusan dan perubahan<br/>Alasan, dampak, persetujuan, versi acuan"]
+  end
+
+  Risk -.-> Baseline
+  Risk -.-> Readiness
+  Quality -.-> SOS
+  Quality -.-> AI
+  Capacity -.-> Baseline
+  Capacity -.-> Coordination
+  Change -.-> Baseline
+  Change -.-> Readiness
+
+  classDef base fill:#EAF2F9,stroke:#2A6496,color:#15263A,stroke-width:2px
+  classDef sos fill:#E9F4F1,stroke:#24786F,color:#15263A,stroke-width:2px
+  classDef coord fill:#F0ECF8,stroke:#7256A6,color:#15263A,stroke-width:2px
+  classDef ai fill:#FBF2E4,stroke:#A66A12,color:#15263A,stroke-width:2px
+  classDef control fill:#FFFFFF,stroke:#64778C,color:#15263A,stroke-width:1px
+  class Baseline base
+  class SOS sos
+  class Coordination coord
+  class AI,Readiness ai
+  class Risk,Quality,Capacity,Change control

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Metadata widget layar utama untuk penawaran tugas relawan. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/volunteer_widget_description"
+    android:initialLayout="@layout/commencys_volunteer_widget"
+    android:minHeight="120dp"
+    android:minWidth="220dp"
+    android:previewLayout="@layout/commencys_volunteer_widget"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="0"
+    android:widgetCategory="home_screen" />

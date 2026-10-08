@@ -17,10 +17,6 @@ plugins:
   - jekyll-seo-tag
   - jekyll-relative-links
 
-# Mermaid diagrams (rendered client-side by just-the-docs)
-mermaid:
-  version: "10.9.4"
-
 # Default layout for every page (files still need front matter to be processed)
 defaults:
   - scope:

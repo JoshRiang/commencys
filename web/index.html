@@ -1,0 +1,104 @@
+<!doctype html>
+<!-- Static dashboard shell; service-driven controls remain disabled. -->
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f5f5f2" />
+    <meta name="description" content="Kerangka dashboard admin Commencys" />
+    <title>Commencys | Kerangka dashboard</title>
+    <link rel="stylesheet" href="/styles.css?v=5" />
+    <script src="/app.js?v=5" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <!-- Header hanya menampilkan status layanan; ia tidak mengirim permintaan. -->
+      <div class="topbar-copy">
+        <h1>Antrean laporan</h1>
+        <p class="phase-note">Kerangka antarmuka. Layanan dan tindakan belum aktif.</p>
+      </div>
+      <div class="topbar-actions">
+        <span id="connection-state" class="connection" data-state="idle">
+          <span class="connection-dot" aria-hidden="true"></span>
+          <span id="connection-label">Layanan belum aktif</span>
+        </span>
+        <button class="button button-quiet" id="refresh-button" type="button" disabled>Muat ulang</button>
+        <span class="access-note">Dashboard admin · autentikasi belum tersedia</span>
+      </div>
+    </header>
+
+    <!-- Workspace admin membagi antrean laporan dan panel rincian untuk tinjauan manusia. -->
+    <main class="workspace">
+      <!-- ID elemen ini menjadi kontrak selector bagi web/app.js. -->
+      <section id="queue-panel" class="queue-panel" aria-labelledby="queue-title">
+        <div class="queue-heading">
+          <h2 id="queue-title">Semua laporan</h2>
+          <span id="queue-count" class="count-label">Belum dimuat</span>
+        </div>
+        <label class="search-box">
+          <span class="sr-only">Cari laporan</span>
+          <span aria-hidden="true">⌕</span>
+          <input id="search-input" type="search" placeholder="Cari laporan" autocomplete="off" disabled />
+          <button id="clear-search" class="clear-search" type="button" aria-label="Hapus pencarian" hidden disabled>×</button>
+        </label>
+        <div class="filter-row" role="group" aria-label="Filter laporan">
+          <button class="filter-button is-selected" type="button" data-filter="all" aria-pressed="true" disabled>Semua</button>
+          <button class="filter-button" type="button" data-filter="review" aria-pressed="false" disabled>Perlu ditinjau</button>
+        </div>
+        <div id="queue-error" class="inline-error" role="alert" hidden>
+          <span id="queue-error-message"></span>
+          <button id="retry-button" class="text-button" type="button" disabled>Coba lagi</button>
+        </div>
+        <div id="report-list" class="report-list" aria-live="polite" aria-busy="false">
+          <p class="empty-copy">Data antrean akan tampil setelah API laporan diimplementasikan.</p>
+        </div>
+      </section>
+
+      <!-- Panel rincian tidak menampilkan data sampai API dan akses tersedia. -->
+      <section id="detail-panel" class="detail-panel" aria-label="Rincian laporan" aria-live="polite">
+        <div class="empty-detail">
+          <h2>Pilih laporan</h2>
+          <p>Rincian, riwayat, dan tindakan admin belum terhubung.</p>
+        </div>
+      </section>
+    </main>
+
+    <!-- Dialog koreksi hanya mendefinisikan bidang; tombol simpan tetap nonaktif. -->
+    <dialog id="correction-dialog" class="dialog dialog-small">
+      <form id="correction-form" method="dialog">
+        <div class="dialog-heading">
+          <div>
+            <p class="eyebrow">KERANGKA TINJAUAN</p>
+            <h2>Koreksi triase</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-dialog aria-label="Tutup">×</button>
+        </div>
+        <p class="form-intro">Formulir disiapkan untuk koreksi metadata. Penyimpanan belum tersedia.</p>
+        <div class="form-section">
+          <label class="field-label" for="correction-category">Kategori triase</label>
+          <select id="correction-category" name="ai_category" required disabled>
+            <option value="medical">Medis</option>
+            <option value="accident">Kecelakaan</option>
+            <option value="fire">Kebakaran</option>
+            <option value="security">Keamanan</option>
+            <option value="facility">Fasilitas</option>
+            <option value="other">Lainnya</option>
+          </select>
+          <label class="field-label" for="correction-urgency">Urgensi</label>
+          <select id="correction-urgency" name="urgency" required disabled>
+            <option>P1</option><option>P2</option><option>P3</option><option>P4</option>
+          </select>
+          <label class="field-label" for="correction-reason">Alasan <span>(opsional)</span></label>
+          <textarea id="correction-reason" name="reason" maxlength="500" rows="2" placeholder="Catatan singkat" disabled></textarea>
+        </div>
+        <p id="correction-error" class="form-error" role="alert" hidden></p>
+        <div class="dialog-actions">
+          <button class="button button-quiet" type="button" data-close-dialog>Batal</button>
+          <button id="save-correction" class="button button-danger" type="submit" disabled>Simpan koreksi</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  </body>
+</html>

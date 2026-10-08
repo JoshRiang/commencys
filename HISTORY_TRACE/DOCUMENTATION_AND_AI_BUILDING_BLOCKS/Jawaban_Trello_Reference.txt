@@ -1,0 +1,112 @@
+Berikut draft jawaban yang bisa langsung dipakai di Trello atau disampaikan saat rapat. Saya pisahkan kondisi yang memang tertulis atau sudah ada di repo dari usulan yang masih perlu disepakati tim.
+
+## Meeting
+
+### 1. Apakah akan ada perpindahan teknologi?
+
+Untuk iterasi pertama, saya usulkan kita tidak pindah teknologi. Lanjutkan Flutter untuk aplikasi mobile dan FastAPI untuk backend, dengan REST API dan WebSocket untuk komunikasi. Dengan begitu, fokus tim tetap pada penyelesaian alur SOS dan pengujian, bukan migrasi.
+
+Ada beberapa komponen yang memang direncanakan untuk tahap berikutnya, tetapi ini bukan perpindahan seluruh tech stack. IndoBERT, PostgreSQL/PostGIS, autentikasi JWT/RBAC, dan OSRM adalah pekerjaan lanjutan. Di repo saat ini, klasifikasi AI masih berupa heuristik, penyimpanan backend masih in-memory, dan beberapa bagian tersebut belum terhubung penuh.
+
+### 2. Pembagian tugas satu jobdesc atau sama rata?
+
+Lebih baik pekerjaan dibagi berdasarkan tanggung jawab, dengan satu PIC utama untuk setiap hasil kerja dan satu orang backup atau reviewer. Beban kerjanya kita seimbangkan berdasarkan estimasi, bukan dengan menyamakan jumlah kartu Trello.
+
+Dokumen proyek mencatat fokus berikut:
+
+- Reinathan: mobile dan alur SOS.
+- Alwahib: peta dan geolokasi.
+- Joshua: backend client dan alerts.
+
+Kepemilikan FastAPI server, AI, dan database belum dirinci dengan nama di dokumen. Sebaiknya tim menunjuk PIC untuk bagian itu sebelum menetapkan jadwal. Nama backup di bawah ini adalah usulan awal, bukan pembagian resmi yang sudah tercatat.
+
+### 3. Fitur iterasi pertama dan kriteria keberhasilannya
+
+Saya usulkan iterasi pertama fokus pada **hot path SOS**, sesuai milestone M1 di rencana proyek:
+
+1. Pengguna dapat mengirim SOS dengan lokasi dan nilai akurasi GPS.
+2. Backend menyimpan laporan dan mengembalikan tiket berstatus `acknowledged` dalam waktu kurang dari lima detik.
+3. SOS memiliki urgency P1 sebagai nilai awal.
+4. Klien yang terhubung menerima event SOS lewat WebSocket.
+5. Aplikasi membedakan laporan yang diterima sistem dari bantuan yang sudah diterima relawan.
+6. Kegagalan atau keterlambatan AI tidak menghalangi pembuatan tiket SOS.
+7. Jika GPS tidak tersedia atau tidak akurat, pengguna dapat mengatur pin lokasi secara manual.
+
+Kriteria terakhir penting karena manual pin termasuk dalam kebutuhan dan rencana MVP, tetapi UI-nya masih tercatat sebagai TODO. Kriteria keberhasilan juga perlu diuji di perangkat Android, termasuk saat izin lokasi ditolak, GPS tidak mendapat posisi, koneksi terputus, dan WebSocket tidak tersedia.
+
+Setelah M1, rencana proyek menempatkan klasifikasi AI, DBSCAN, dan antrean tinjauan koordinator di M2. PostgreSQL/PostGIS, JWT/RBAC, dan OSRM ada di M3. Evaluasi metrik masuk M4.
+
+## To Do: prioritas, definisi selesai, kebutuhan, dan alternatif
+
+Prioritas yang saya sarankan:
+
+- **P0, sebelum demo alur SOS:** lokasi dan fallback manual, tiket tersimpan, respons backend kurang dari lima detik, status UI yang jujur, serta penanganan error.
+- **P1, untuk koordinasi:** WebSocket, pemuatan ulang lewat REST jika koneksi bermasalah, peta insiden, dan penerimaan tugas oleh relawan.
+- **P2, sebelum pilot produksi:** penyimpanan persisten, kontrol akses lokasi, AI yang benar-benar dievaluasi, dan monitoring.
+
+Kebutuhan utama untuk P0 adalah Flutter SDK, backend FastAPI yang bisa dijangkau ponsel atau emulator, perangkat Android untuk uji GPS, serta kontrak API yang disepakati. Tahap AI memerlukan data laporan berlabel dan koordinator yang dapat meninjau prediksi. Tahap produksi memerlukan PostgreSQL/PostGIS, pengaturan autentikasi dan peran, serta layanan routing jika ETA harus memakai OSRM.
+
+Jika asumsi teknis tidak terpenuhi, fallback yang disarankan:
+
+- GPS gagal: sediakan pin manual. Jika lokasi tetap tidak diketahui, jangan berpura-pura laporan memiliki lokasi akurat.
+- WebSocket putus: ambil ulang tiket melalui REST setelah koneksi pulih.
+- AI lambat atau gagal: tetap simpan tiket P1 dan lanjutkan triase secara manual.
+- IndoBERT belum siap atau datanya belum cukup: jangan menyebut heuristik saat ini sebagai model tervalidasi. Pertahankan hasilnya sebagai saran atau nonaktifkan prediksi.
+- PostGIS belum tersedia: untuk demo, pengelompokan bisa tetap sederhana. Untuk pilot yang memerlukan riwayat andal, jangan mengandalkan penyimpanan in-memory.
+- OSRM belum tersedia: tampilkan ETA sebagai estimasi yang jelas atau jangan tampilkan ETA.
+
+## Pembagian pekerjaan, estimasi, dan milestone
+
+Estimasi berikut adalah perkiraan awal dalam **hari kerja per orang**, bukan tanggal komitmen. Repo sudah berisi sebagian implementasi, jadi estimasi ini untuk menyelesaikan gap dan melakukan integrasi, bukan membangun semuanya dari nol.
+
+| Pekerjaan | Estimasi awal | Dependensi | PIC dan backup usulan | Milestone |
+|---|---:|---|---|---|
+| Sepakati kontrak API dan kriteria penerimaan | 0,5 sampai 1 hari | Tidak ada | Tim bersama. Reinathan menyiapkan kebutuhan dari sisi SOS, Joshua meninjau kontrak API dan alerts | M0 |
+| Rapikan alur SOS mobile, status, dan pesan gagal | 1 sampai 2 hari | Kontrak API | PIC Reinathan, backup Alwahib | M1 |
+| Tambahkan pin lokasi manual | 2 sampai 3 hari | Peta dan format koordinat API | PIC Alwahib, backup Reinathan | M1 |
+| Periksa endpoint SOS, penyimpanan, respons, dan WebSocket | 1 sampai 2 hari untuk gap M1 | Kontrak API | PIC backend perlu dikonfirmasi. Joshua dapat menjadi PIC integrasi API dan alerts, dengan Reinathan sebagai reviewer alur mobile | M1 |
+| Sinkronisasi status dan daftar alerts lewat WebSocket serta REST | 1 sampai 2 hari | Event backend | PIC Joshua, backup Reinathan | M1 |
+| Klasifikasi AI, aturan tinjauan, dan DBSCAN dengan data evaluasi | Belum layak dipastikan sebelum data dan kriteria tersedia | Dataset berlabel, aturan triase, pemilik AI | PIC AI/backend perlu ditunjuk. Koordinator menjadi reviewer hasil | M2 |
+| PostgreSQL/PostGIS, autentikasi, kontrol akses, dan OSRM | 3 sampai 5 hari untuk integrasi awal, dapat bertambah sesuai infrastruktur | Skema, server, kredensial, dan lingkungan deploy | PIC backend perlu dikonfirmasi. Joshua dapat menjadi backup integrasi alerts | M3 |
+
+Sebelum tanggal kalender dimasukkan ke kartu, tim perlu menyepakati awal sprint dan kapasitas tiap orang. Kodebase tidak mencatat ketersediaan anggota atau tanggal sprint, jadi tanggal pasti tidak bisa ditentukan hanya dari repo. Risiko lokasi, konektivitas, dan penyimpanan sebaiknya ditutup sebelum pilot.
+
+### Risiko yang sebaiknya diprioritaskan
+
+Gunakan skor awal **kemungkinan × dampak**, masing-masing dari 1 sampai 5. Skor ini perlu diperbarui setelah uji lapangan.
+
+| Risiko | Skor awal | Mitigasi | Target milestone |
+|---|---:|---|---|
+| GPS ditolak, tidak aktif, atau tidak akurat | 4 × 5 = 20 | Pin manual, tampilkan akurasi, beri pesan yang membedakan GPS mati dari izin ditolak | Sebelum demo M1 |
+| Backend tidak terjangkau atau data hilang saat proses restart | 3 × 5 = 15 | Uji koneksi perangkat nyata, tampilkan status gagal dengan jelas, siapkan penyimpanan persisten sebelum pilot | Koneksi di M1, penyimpanan di M3 |
+| Kebocoran koordinat presisi | 3 × 5 = 15 | Terapkan autentikasi dan pembatasan peran sebelum membuka layanan ke pengguna pilot | Sebelum pilot M3 |
+| AI salah mengklasifikasi atau menurunkan urgensi kritis | 3 × 5 = 15 | SOS tetap P1, AI tidak boleh menurunkan urgency otomatis, hasil berisiko masuk tinjauan manusia | Aturan dasar di M1, evaluasi di M2/M4 |
+| DBSCAN menggabungkan laporan yang berbeda | 3 × 4 = 12 | Jangan hapus laporan sumber, buat penggabungan dapat dibatalkan, sediakan aksi split untuk koordinator | M2 |
+| WebSocket terputus dan status terlambat | 3 × 4 = 12 | Reconnect, lalu lakukan sinkronisasi REST secara eksplisit setelah koneksi pulih | M1 |
+| Pengguna mengirim SOS berulang setelah timeout | 3 × 4 = 12 | Tambahkan idempotency key atau mekanisme pemeriksaan duplikasi saat retry | M1 sebelum uji koneksi buruk |
+
+## AI Features Discussion
+
+### 1. Jika laporan dalam satu cluster memiliki prediksi jenis atau urgency yang berbeda, bagaimana menentukan hasilnya?
+
+DBSCAN sebaiknya dipahami sebagai penghubung laporan yang mungkin terkait, bukan aturan untuk menghapus atau menggabungkan data tiket. Setiap tiket tetap menyimpan kategori, urgency, dan hasil AI-nya sendiri. Kode saat ini memberikan `cluster_id`, tetapi tidak menghitung satu kategori atau urgency gabungan untuk seluruh cluster.
+
+Untuk ringkasan cluster, saya usulkan sistem menampilkan urgency tertinggi di antara tiket yang belum selesai sebagai nilai sementara. Nilai itu hanya untuk membantu petugas melihat prioritas, bukan untuk menimpa data laporan. Koordinator meninjau konflik dan memutuskan koreksi. SOS tetap P1 sampai ada tinjauan manusia yang berwenang.
+
+Repo menyediakan endpoint koreksi kategori AI dan urgency. Namun, secara desain koordinator yang seharusnya mengoreksi, sementara autentikasi dan pembatasan peran belum diterapkan pada backend MVP. Jadi kewenangan itu belum ditegakkan oleh kode saat ini.
+
+### 2. Data apa yang perlu disimpan bersama prediksi?
+
+Untuk setiap laporan, simpan ID dan waktu laporan, data sumber yang diperlukan untuk audit, keluaran model, waktu prediksi, confidence, aturan ambang yang dipakai, versi model, dan hasil tinjauan manusia. Untuk DBSCAN, catat ID cluster serta versi dan parameter algoritmanya. Untuk setiap koreksi, catat siapa yang mengoreksi, kapan, nilai sebelum dan sesudah koreksi, alasan, serta siapa yang menyetujuinya jika perlu persetujuan kedua.
+
+Saat ini kode sudah memiliki beberapa bagiannya: ID laporan, timestamp, hasil kategori AI, confidence, saran urgency, `needs_review`, `cluster_id`, serta entri audit yang mencatat waktu, aksi, ID laporan, versi model, dan detail. Versi yang dicatat sekarang adalah `heuristic-v2`. Namun, penyimpanan tiket dan audit masih in-memory, dan detail audit koreksi belum merekam perubahan lama dan baru secara terstruktur. Skema audit permanen di database masih berupa target desain.
+
+### 3. Bagaimana koreksi ditinjau sebelum dipakai untuk evaluasi atau pelatihan?
+
+Koreksi koordinator sebaiknya tidak langsung dianggap sebagai label pelatihan yang benar. Simpan sebagai anotasi yang dapat ditinjau, lengkap dengan alasan dan identitas peninjau. Untuk kasus P1/P2 atau perbedaan pendapat, minta peninjau kedua sebelum label disetujui masuk dataset evaluasi atau pelatihan.
+
+Sebelum dataset dipakai, lakukan anonimisasi seperlunya, pastikan laporan duplikat dalam cluster yang sama tidak tersebar antara data latih dan data uji, lalu catat versi dataset dan versi model. Evaluasi setiap kandidat model pada data uji yang tidak dipakai untuk melatihnya. Periksa metrik per kategori dan utamakan kesalahan yang dapat melewatkan insiden P1/P2. Rilis model hanya setelah hasilnya ditinjau dan tersedia cara untuk kembali ke versi sebelumnya.
+
+Saat ini repo memiliki endpoint koreksi dan pencatatan audit, tetapi belum memiliki alur persetujuan koreksi sebelum data dipakai untuk evaluasi atau pelatihan. Bagian tersebut perlu dibuat sebagai pekerjaan terpisah.
+
+**Catatan untuk menyampaikan kondisi proyek dengan akurat:** alur dasar SOS dan penerimaan tiket sudah ada, tetapi pin manual masih TODO. AI yang berjalan masih heuristik, bukan IndoBERT. Penyimpanan masih in-memory. Tahap `broadcast` ada di model dan UI, tetapi belum menjadi transisi status yang dijalankan oleh backend SOS. Jadi lebih tepat menyebut M1 sebagai dasar yang sudah sebagian terimplementasi, bukan menganggap seluruh alur MVP sudah selesai.

@@ -1,0 +1,60 @@
+services:
+  # Optional local spatial database; this profile is not connected to the API scaffold yet.
+  postgis:
+    image: postgis/postgis:16-3.5
+    profiles: [data]
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-commencys}
+      POSTGRES_USER: ${POSTGRES_USER:-commencys}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-commencys-local-only}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - commencys-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  # Local email sink for identity-flow development; messages stay in the local Mailpit inbox.
+  mailpit:
+    image: axllent/mailpit:v1.31.4
+    profiles: [identity]
+    ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+
+  # Development-only identity provider with the project realm imported on first start.
+  # The default credentials below are local examples and must never be used in deployment.
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.8.0
+    profiles: [identity]
+    command: [start-dev, --import-realm]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_BOOTSTRAP_ADMIN_USERNAME:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_BOOTSTRAP_ADMIN_PASSWORD:-commencys-local-admin-only}
+      KC_HOSTNAME: http://localhost:8080
+      KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME_STRICT: "false"
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - commencys-keycloak:/opt/keycloak/data
+      - ./config/keycloak/commencys-realm.json:/opt/keycloak/data/import/commencys-realm.json:ro
+    depends_on:
+      - mailpit
+
+  # Optional routing engine; the Java road graph must be prepared outside this repository first.
+  osrm:
+    image: ghcr.io/project-osrm/osrm-backend:26.10-debian
+    profiles: [routing]
+    command: [osrm-routed, --algorithm, mld, /data/java-latest.osrm]
+    ports:
+      - "127.0.0.1:5000:5000"
+    volumes:
+      - "${OSRM_DATA_DIR:-./.local/osrm/java}:/data:ro"
+
+volumes:
+  commencys-postgres:
+  commencys-keycloak:

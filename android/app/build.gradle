@@ -1,3 +1,5 @@
+// Configure the Flutter Android host and the native home-screen widget providers.
+// Keep the Java/Kotlin bytecode target compatible with the Flutter Android plugins.
 plugins {
     id "com.android.application"
     id "kotlin-android"
@@ -9,6 +11,8 @@ android {
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
+    // Flutter supplies the SDK and NDK versions selected by the installed Flutter toolchain.
+    // Java 11 bytecode keeps the app compatible with the declared Android minimum SDK.
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -24,6 +28,8 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // Match the native AppAuth callback scheme registered in the Keycloak realm.
+        manifestPlaceholders += [appAuthRedirectScheme: "com.commencys.app"]
     }
 
     buildTypes {
