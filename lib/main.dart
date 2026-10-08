@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import 'app_shell.dart';
+import 'screens/p1_invite_screen.dart';
 import 'screens/role_picker_screen.dart';
+import 'services/invite_alerts.dart';
 import 'services/volunteer_store.dart';
 import 'theme/app_theme.dart';
 
@@ -20,8 +22,10 @@ class CommencysApp extends StatelessWidget {
       theme: AppTheme.light(),
       // First launch lands on the role picker; afterwards the map shell.
       home: const _LaunchGate(),
+      navigatorKey: AppNav.key,
       routes: {
         '/roles': (context) => const RolePickerScreen(editing: true),
+        '/p1-invite': (context) => const P1InviteScreen(),
         '/sos': (context) => const AppShell(initialTab: 4),
         '/report': (context) => const AppShell(initialTab: 1),
         '/map': (context) => const AppShell(initialTab: 2),

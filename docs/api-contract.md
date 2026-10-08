@@ -50,11 +50,9 @@ Response body = ticket with `title: "SOS (voice)"`,
 `urgency_source: "sos_voice_pending_triage"`. Oversize clips
 (`SOS_VOICE_MAX_BYTES` = 10 MB) → 413; empty audio / bad coords → 422.
 The server transcribes Indonesian speech on-request (STT + offline
-ID→EN, wider 15 s budget) and falls back to P1 fail-safe
+ID→EN, wider 15 s budget) and falls back to the P1 fail-safe description
 "Voice SOS (unintelligible audio)" when transcription fails — a voice
 SOS is never dropped and never 5xx for model reasons.
-→ 413. Audio is metadata-only in this MVP (filename + size stamped on
-`description`); transcription / object storage is a follow-up.
 
 ## `POST /api/incidents` → 201
 

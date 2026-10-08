@@ -102,6 +102,7 @@ flutter run
 
 - `GET /health` → `{"status":"ok","service":"commencys-mvp"}`
 - `POST /api/sos` → 201 acknowledged P1 ticket (`category: "sos"`), strictly < 5 s
+- `POST /api/sos-voice` → 201 voice SOS (multipart `audio` + GPS → STT + offline ID→EN → same P1 fail-safe; wider 15 s budget; full contract in `docs/api-contract.md`)
 - `POST /api/incidents` → 201 acknowledged ticket
 - `GET /api/incidents` → list of tickets
 - `POST /api/incidents/{id}/dispatch?volunteer=` → acknowledged/broadcast → dispatched (manual accept, writes `dispatched_to`)
