@@ -27,27 +27,33 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    // layout.md › Guides and safe areas: non-map tabs reserve the bar's
+    // own clearance plus the system bottom inset (SafeArea alone only
+    // covers the inset, not the floating bar). The map tab handles its
+    // own clearance internally so the map stays full-bleed.
+    final bottomPad = kFloatingTabBarClearance +
+        MediaQuery.of(context).padding.bottom;
     return Scaffold(
       extendBody: true,
       body: IndexedStack(
         index: _index,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(bottom: 96),
-            child: HomeScreen(),
+          Padding(
+            padding: EdgeInsets.only(bottom: bottomPad),
+            child: const HomeScreen(),
           ),
           Padding(
-            padding: const EdgeInsets.only(bottom: 96),
+            padding: EdgeInsets.only(bottom: bottomPad),
             child: ReportScreen(onSubmitted: () => _go(3)),
           ),
           MapScreen(onSosPressed: () => _go(4)),
-          const Padding(
-            padding: EdgeInsets.only(bottom: 96),
-            child: AlertsScreen(),
+          Padding(
+            padding: EdgeInsets.only(bottom: bottomPad),
+            child: const AlertsScreen(),
           ),
-          const Padding(
-            padding: EdgeInsets.only(bottom: 96),
-            child: SosScreen(),
+          Padding(
+            padding: EdgeInsets.only(bottom: bottomPad),
+            child: const SosScreen(),
           ),
         ],
       ),

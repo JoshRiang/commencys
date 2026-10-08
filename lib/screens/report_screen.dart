@@ -4,6 +4,7 @@ import '../services/api_client.dart';
 import '../services/location_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass.dart';
+import '../widgets/urgency_labels.dart';
 
 /// Report as a glass stepped form: 1 What → 2 Category → 3 Urgency →
 /// 4 Details. API unchanged: [ApiClient.createIncident].
@@ -66,7 +67,7 @@ class _ReportScreenState extends State<ReportScreen> {
     } else if (p2.any((k) => t.contains(k))) {
       urg = 'P2';
     }
-    return 'Looks like: $cat · $urg ($conf) — AI confirms after submit';
+    return 'Looks like: $cat · ${UrgencyLabels.forCode(urg)} ($conf) — AI confirms after submit';
   }
   static const _categories = [
     ('medical', Icons.medical_services_rounded),
@@ -280,34 +281,49 @@ class _ReportScreenState extends State<ReportScreen> {
             const SizedBox(height: 16),
             const SectionHeader(title: '3 · How urgent?'),
             GlassCard(
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  for (final s in _severities)
-                    ChoiceChip(
-                      label: Text(s.toUpperCase()),
-                      selected: _severity == s,
-                      onSelected: (_) =>
-                          setState(() => _severity = s),
-                      selectedColor: AppColors.severitySoftFor(s),
-                      labelStyle: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 12,
-                        color: _severity == s
-                            ? AppColors.severityFor(s)
-                            : AppColors.secondary,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(999),
-                        side: BorderSide(
-                          color: _severity == s
-                              ? AppColors.severityFor(s)
-                              : Colors.black.withValues(alpha: 0.08),
+                  const Text(
+                    'How fast does this need help? Laya confirms after you send.',
+                    style: TextStyle(
+                        color: AppColors.secondary, fontSize: 12.5),
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final s in _severities)
+                        ChoiceChip(
+                          label: Text(
+                              UrgencyLabels.forSeverity(s)),
+                          selected: _severity == s,
+                          onSelected: (_) =>
+                              setState(() => _severity = s),
+                          selectedColor:
+                              AppColors.severitySoftFor(s),
+                          labelStyle: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 12,
+                            color: _severity == s
+                                ? AppColors.severityFor(s)
+                                : AppColors.secondary,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(999),
+                            side: BorderSide(
+                              color: _severity == s
+                                  ? AppColors.severityFor(s)
+                                  : Colors.black
+                                      .withValues(alpha: 0.08),
+                            ),
+                          ),
+                          showCheckmark: false,
                         ),
-                      ),
-                      showCheckmark: false,
-                    ),
+                    ],
+                  ),
                 ],
               ),
             ),

@@ -18,10 +18,12 @@ import asyncio
 import logging
 import math
 import os
+import tempfile
 import time
 from typing import Any
 
-from fastapi import BackgroundTasks, FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import (BackgroundTasks, FastAPI, File, Form, UploadFile,
+                      WebSocket, WebSocketDisconnect)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -29,6 +31,8 @@ from .ai_pipeline import MODEL_VERSION, classify, cluster, haversine_m
 from .laya_dispatch import VALID_ROLES, dispatch_incident
 from .models import (CorrectIn, Incident, IncidentIn, SosIn, Status, Urgency,
                      Volunteer, VolunteerIn)
+from .voice_sos import (MAX_AUDIO_BYTES, VOICE_BUDGET_S, transcribe_file,
+                         translate_id_en)
 
 log = logging.getLogger("commencys")
 logging.basicConfig(level=logging.INFO)
@@ -183,6 +187,95 @@ async def send_sos(body: SosIn, background: BackgroundTasks) -> JSONResponse:
     headers = {"X-SOS-Budget-S": str(SOS_BUDGET_S)}
     if elapsed >= SOS_BUDGET_S:
         log.error("SOS budget breached: %.3fs", elapsed)
+    return JSONResponse(status_code=201, content=ticket, headers=headers)
+
+
+# ------------------------------------------------------------ voice SOS hot
+@app.post("/api/sos-voice", status_code=201)
+async def send_sos_voice(
+    background: BackgroundTasks,
+    audio: UploadFile = File(...),
+    latitude: float = Form(...),
+    longitude: float = Form(...),
+    accuracy_m: float | None = Form(default=None),
+    description: str | None = Form(default=None),
+    reporter_name: str = Form(default="Anonymous"),
+    duration_s: float | None = Form(default=None),
+) -> JSONResponse:
+    """Voice SOS: multipart audio → STT → offline ID→EN → SOS P1 pipeline.
+
+    Fail-safe: STT/translation run off the event loop; empty transcripts
+    or ANY model failure still create a P1 ticket ("Voice SOS
+    (unintelligible audio)") — never dropped, never 5xx for model reasons.
+    Only malformed requests (missing audio, bad coords, oversize) are 4xx.
+    """
+    started = time.perf_counter()
+    if not (-90 <= latitude <= 90) or not (-180 <= longitude <= 180):
+        return JSONResponse(status_code=422,
+                            content={"detail": "invalid coordinates"})
+    raw = await audio.read()
+    if not raw:
+        return JSONResponse(status_code=422,
+                            content={"detail": "empty audio upload"})
+    if len(raw) > MAX_AUDIO_BYTES:
+        return JSONResponse(status_code=413,
+                            content={"detail": "audio exceeds size limit"})
+    suffix = ".m4a"
+    if audio.filename and "." in audio.filename:
+        suffix = "." + audio.filename.rsplit(".", 1)[-1][:8].lower()
+    tmp = tempfile.NamedTemporaryFile(suffix=suffix, delete=False)
+    try:
+        tmp.write(raw)
+        tmp.close()
+        clip_path = tmp.name
+        try:
+            stt = await asyncio.to_thread(transcribe_file, clip_path)
+        except Exception as exc:  # noqa: BLE001 — STT failure fail-safes
+            log.warning("voice-sos: STT failed, fail-safe P1: %s", exc)
+            stt = {"text": "", "language": None,
+                   "language_probability": 0.0}
+        transcript = (stt.get("text") or "").strip()
+        translated, engine = await asyncio.to_thread(
+            translate_id_en, transcript) if transcript else (None, "none")
+    finally:
+        try:
+            os.unlink(tmp.name)
+        except OSError:
+            pass
+    if transcript:
+        spoken = translated or transcript
+        desc = (f"[voice {stt.get('language') or '?'}] {spoken}"
+                + (f" (orig: {transcript})" if translated else ""))
+        if duration_s:
+            desc += f" [{duration_s:.0f}s clip]"
+    else:
+        desc = "Voice SOS (unintelligible audio)"
+        engine = "none"
+    if description:
+        desc = f"{description} | {desc}"
+    ticket = Incident(
+        title="SOS (voice)",
+        description=desc,
+        category="sos",
+        latitude=latitude,
+        longitude=longitude,
+        accuracy_m=accuracy_m,
+        reporter_name=reporter_name or "Anonymous",
+        urgency=Urgency.P1.value,
+        urgency_source="sos_voice_pending_triage",
+        status=Status.ACKNOWLEDGED.value,
+    ).model_dump()
+    async with _lock:
+        _store[ticket["id"]] = ticket
+    _audit("create", ticket["id"],
+           f"voice SOS {engine} {(transcript or 'unintelligible')[:80]}")
+    asyncio.create_task(_broadcast(ticket_to_frame(ticket, "incident.sos")))
+    background.add_task(_enrich, ticket["id"])
+    elapsed = time.perf_counter() - started
+    log.info("voice SOS %s acked in %.3fs", ticket["id"], elapsed)
+    headers = {"X-SOS-Budget-S": str(VOICE_BUDGET_S)}
+    if elapsed >= VOICE_BUDGET_S:
+        log.error("voice SOS budget breached: %.3fs", elapsed)
     return JSONResponse(status_code=201, content=ticket, headers=headers)
 
 

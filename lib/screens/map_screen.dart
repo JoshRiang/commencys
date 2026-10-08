@@ -7,8 +7,10 @@ import '../services/api_client.dart';
 import '../services/location_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/ai_badges.dart';
+import '../widgets/floating_tab_bar.dart';
 import '../widgets/glass.dart';
 import '../widgets/server_dialog.dart';
+import '../widgets/urgency_labels.dart';
 
 /// Map is home: full-bleed live map under a floating glass top bar
 /// (search/status pill + backend server button), a draggable glass bottom
@@ -89,8 +91,15 @@ class _MapScreenState extends State<MapScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      builder: (sheetContext) => Padding(
+        // layout.md › Guides and safe areas: sheet content clears the
+        // system bottom inset, not just a fixed margin.
+        padding: EdgeInsets.fromLTRB(
+          16,
+          0,
+          16,
+          24 + MediaQuery.of(sheetContext).padding.bottom,
+        ),
         child: LiquidGlass(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -105,10 +114,24 @@ class _MapScreenState extends State<MapScreen> {
                           fontSize: 16, fontWeight: FontWeight.w800),
                     ),
                   ),
-                  Pill(
-                    label: i.severity.name.toUpperCase(),
-                    bg: AppColors.severitySoftFor(i.severity.name),
-                    fg: AppColors.severityFor(i.severity.name),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Pill(
+                        label: UrgencyLabels.forUrgency(i.urgency),
+                        bg: UrgencyLabels.urgencyBg(i.urgency),
+                        fg: UrgencyLabels.urgencyFg(i.urgency),
+                        icon: Icons.bolt_rounded,
+                      ),
+                      const SizedBox(height: 6),
+                      Pill(
+                        label:
+                            UrgencyLabels.forSeverity(i.severity.name),
+                        bg: AppColors.severitySoftFor(i.severity.name),
+                        fg: AppColors.severityFor(i.severity.name),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -184,6 +207,13 @@ class _MapScreenState extends State<MapScreen> {
             e.severity == IncidentSeverity.high)
         .length;
     final top = MediaQuery.of(context).padding.top;
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+    // layout.md › Guides and safe areas + tab-bars.md › Best practices:
+    // the tab bar floats above content, so the nearby-incidents list must
+    // reserve the bar's own clearance *plus* the system bottom inset.
+    // scroll-views.md: the resting (collapsed-sheet) state must already
+    // show scrollable content — hence the extra overscroll pad.
+    final listClearance = kFloatingTabBarClearance + bottomInset + 24.0;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -306,11 +336,12 @@ class _MapScreenState extends State<MapScreen> {
                               fontWeight: FontWeight.w700),
                         ),
                       ),
-                      if (!_loading && _incidents.isNotEmpty)
+                      if (!_loading && urgent > 0)
                         Pill(
-                          label: '$urgent urgent',
+                          label: '$urgent need help NOW',
                           bg: AppColors.accentSoft,
                           fg: AppColors.accentDeep,
+                          icon: Icons.bolt_rounded,
                         ),
                       IconButton(
                         visualDensity: VisualDensity.compact,
@@ -444,11 +475,11 @@ class _MapScreenState extends State<MapScreen> {
                               ? SingleChildScrollView(
                                   controller:
                                       scrollController,
-                                  child: const Padding(
+                                  child: Padding(
                                     padding:
                                         EdgeInsets.fromLTRB(
-                                            18, 4, 18, 16),
-                                    child: EmptyState(
+                                            18, 4, 18, listClearance),
+                                    child: const EmptyState(
                                       icon:
                                           Icons.map_outlined,
                                       title:
@@ -461,9 +492,9 @@ class _MapScreenState extends State<MapScreen> {
                               : ListView.separated(
                                   controller:
                                       scrollController,
-                                  padding: const EdgeInsets
+                                  padding: EdgeInsets
                                       .fromLTRB(
-                                          14, 0, 14, 18),
+                                          14, 0, 14, listClearance),
                                   itemCount:
                                       filtered.length,
                                   separatorBuilder:
@@ -583,23 +614,33 @@ class _MapScreenState extends State<MapScreen> {
             },
           ),
 
-          // Locate / recenter above the floating tab bar zone.
+          // Locate / recenter: floats above the sheet's resting position and
+          // the floating tab bar zone (tab-bars.md: bar stays visible).
           Positioned(
             right: 16,
-            bottom: 210,
-            child: GlassIconButton(
+            bottom: kFloatingTabBarClearance + 112,
+            child: Semantics(
+              button: true,
+              label: 'Re-center on my location',
+              child: GlassIconButton(
               icon: Icons.my_location_rounded,
               tooltip: 'Re-center on me',
               color: AppColors.info,
               onPressed: _recenter,
+              ),
             ),
           ),
 
-          // Floating SOS above the floating tab bar zone.
+          // Floating SOS above the floating tab bar zone. 62pt circle beats
+          // the 44pt minimum (accessibility.md › Mobility) with room for
+          // one-handed reach (designing-for-ios.md).
           Positioned(
             right: 16,
-            bottom: 146,
-            child: GestureDetector(
+            bottom: kFloatingTabBarClearance + 48,
+            child: Semantics(
+              button: true,
+              label: 'Send SOS',
+              child: GestureDetector(
               onTap: widget.onSosPressed,
               child: Container(
                 width: 62,
@@ -638,6 +679,7 @@ class _MapScreenState extends State<MapScreen> {
                     letterSpacing: 0.5,
                   ),
                 ),
+              ),
               ),
             ),
           ),

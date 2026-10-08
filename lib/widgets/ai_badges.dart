@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/incident.dart';
 import '../theme/app_theme.dart';
 import 'glass.dart';
+import 'urgency_labels.dart';
 
 /// Shared AI triage badges — same Liquid Glass language everywhere.
 ///
@@ -37,7 +38,7 @@ class AiTriageBadges extends StatelessWidget {
     final urg = incident.aiSuggestedUrgency;
     if (urg != null && incident.urgencySource == 'ai_triage_pending_review') {
       chips.add(Pill(
-        label: 'AI suggests $urg',
+        label: 'AI: ${UrgencyLabels.forCode(urg)}?',
         bg: AppColors.accentSoft,
         fg: AppColors.accentDeep,
         icon: Icons.arrow_upward_rounded,
@@ -59,7 +60,9 @@ class AiTriageBadges extends StatelessWidget {
         child: Pill(
           label: n != null ? 'cluster: $n nearby' : 'cluster',
           bg: AppColors.successSoft,
-          fg: AppColors.success,
+          // Darkened vs AppColors.success so 12 pt bold text keeps
+          // 4.5:1 on the soft green (was 2.9:1).
+          fg: const Color(0xFF15803D),
           icon: Icons.hub_outlined,
         ),
       ));

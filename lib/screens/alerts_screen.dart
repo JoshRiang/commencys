@@ -3,12 +3,14 @@ import 'package:intl/intl.dart';
 
 import '../models/incident.dart';
 import '../services/api_client.dart';
+import '../services/invite_alerts.dart';
 import '../services/volunteer_store.dart';
 import '../services/websocket_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/ai_badges.dart';
 import '../widgets/glass.dart';
 import '../widgets/invite_cards.dart';
+import '../widgets/urgency_labels.dart';
 
 /// Alerts as a glass timeline list over a soft gradient backdrop.
 /// Live frames arrive on [CoordinationSocket.messages] (`/ws/alerts`);
@@ -35,21 +37,47 @@ class _AlertsScreenState extends State<AlertsScreen> {
     super.initState();
     _socket = CoordinationSocket();
     _socket.connect();
-    _socket.messages.listen((msg) {
+    _socket.messages.listen((msg) async {
       if (!mounted) return;
       setState(() => _live = true);
-      // Push-style card: when a live frame carries role targeting that
-      // matches this volunteer, surface it as a special invite.
-      final frameRoles = _frameRoles(msg);
-      final matched = _matchRoles(frameRoles);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(
-                matched.isNotEmpty
-                    ? 'Special invite (${matched.join(', ')}): '
-                        '${msg['title'] ?? 'new alert'}'
-                    : 'Live update: ${msg['title'] ?? 'new alert'}')),
+      // Route the frame: P1 + role-match → full-screen emergency alert
+      // (system notification + in-app route); plain invites → normal
+      // notification; untargeted traffic → in-app snackbar only.
+      final decision = await InviteAlertService.instance.handleLiveFrame(
+        msg,
+        _myRoles,
       );
+      if (!mounted) return;
+      if (decision.action == AlertAction.emergency) {
+        // The full-screen P1 route is already pushed by the service.
+      } else if (decision.action == AlertAction.invite) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Special invite (${decision.matchedRoles.join(', ')}): '
+              '${decision.title}',
+            ),
+          ),
+        );
+      } else if (decision.action == AlertAction.broadcast) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Live update: ${decision.title}')),
+        );
+      } else {
+        // Non-urgent, untargeted traffic: refresh silently, no buzz.
+        final frameRoles = _frameRoles(msg);
+        final matched = _matchRoles(frameRoles);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              matched.isNotEmpty
+                  ? 'Special invite (${matched.join(', ')}): '
+                      '${msg['title'] ?? 'new alert'}'
+                  : 'Live update: ${msg['title'] ?? 'new alert'}',
+            ),
+          ),
+        );
+      }
       _load(silent: true);
     });
     _loadRoles();
@@ -357,11 +385,28 @@ class _AlertsScreenState extends State<AlertsScreen> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            Pill(
-                              label: incident.severity.name
-                                  .toUpperCase(),
-                              bg: sevSoft,
-                              fg: sev,
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.end,
+                              children: [
+                                Pill(
+                                  label: UrgencyLabels.forUrgency(
+                                      incident.urgency),
+                                  bg: UrgencyLabels.urgencyBg(
+                                      incident.urgency),
+                                  fg: UrgencyLabels.urgencyFg(
+                                      incident.urgency),
+                                  icon: Icons.bolt_rounded,
+                                ),
+                                const SizedBox(height: 6),
+                                Pill(
+                                  label: UrgencyLabels.forSeverity(
+                                      incident.severity.name),
+                                  bg: sevSoft,
+                                  fg: sev,
+                                ),
+                              ],
                             ),
                           ],
                         ),

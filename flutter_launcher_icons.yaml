@@ -1,0 +1,11 @@
+# Regenerate launcher icons from the 1024px source when the brand mark changes:
+#   dart run flutter_launcher_icons
+# Icons are committed directly (android/.../mipmap-*) so CI APKs pick them up
+# without running this step.
+flutter_launcher_icons:
+  android: true
+  ios: false # repo has no ios/ runner yet; assets/app_icon.png is the 1024 source for it
+  image_path: "assets/app_icon.png"
+  adaptive_icon_background: "#D61F2C"
+  adaptive_icon_foreground: "assets/app_icon_foreground.png"
+  min_sdk_android: 21

@@ -403,3 +403,72 @@ def test_laya_sends_pretranslated_report(monkeypatch):
     assert "+pretranslated" in plan["reason"]
     assert "kebakaran" not in seen["report"].lower()
     assert "fire" in seen["report"].lower()
+
+
+# ------------------------------------------------------- voice SOS (/api/sos-voice)
+def _voice_post(monkeypatch, audio: bytes = b"\x00\x01fake-audio",
+                filename: str = "clip.m4a", **fields):
+    """POST multipart /api/sos-voice with STT stubbed (no model load)."""
+    import app.main as m
+
+    def _fake_stt(path):
+        return {"text": "tolong, kebakaran di dapur kos",
+                "language": "id", "language_probability": 0.9}
+
+    monkeypatch.setattr(m, "transcribe_file", _fake_stt)
+    data = {"latitude": "-6.2", "longitude": "106.8"}
+    data.update({k: str(v) for k, v in fields.items()})
+    return client.post("/api/sos-voice", data=data,
+                       files={"audio": (filename, audio, "audio/m4a")})
+
+
+def test_sos_voice_creates_p1_ticket(monkeypatch):
+    """Voice SOS acks 201 as P1 with the translated transcript in-line."""
+    r = _voice_post(monkeypatch)
+    assert r.status_code == 201
+    body = r.json()
+    assert body["title"] == "SOS (voice)"
+    assert body["status"] == "acknowledged"
+    assert body["urgency"] == "P1"
+    assert body["urgency_source"] == "sos_voice_pending_triage"
+    assert "tolong" in body["description"] or "kebakaran" in body["description"]
+    assert r.headers.get("X-SOS-Budget-S") == "15.0"
+
+
+def test_sos_voice_stt_failure_still_p1(monkeypatch):
+    """STT/model failure fail-safes to an intelligible P1, never 5xx."""
+    import app.main as m
+
+    def _boom(path):
+        raise RuntimeError("no model here")
+
+    monkeypatch.setattr(m, "transcribe_file", _boom)
+    r = client.post("/api/sos-voice",
+                    data={"latitude": "-6.2", "longitude": "106.8"},
+                    files={"audio": ("clip.m4a", b"\x00\x01", "audio/m4a")})
+    assert r.status_code == 201
+    body = r.json()
+    assert body["urgency"] == "P1"
+    assert "unintelligible" in body["description"]
+
+
+def test_sos_voice_rejects_bad_input():
+    """Empty audio and bad coords are 422 (malformed, not model errors)."""
+    r = client.post("/api/sos-voice",
+                    data={"latitude": "-6.2", "longitude": "106.8"},
+                    files={"audio": ("clip.m4a", b"", "audio/m4a")})
+    assert r.status_code == 422
+    r = client.post("/api/sos-voice",
+                    data={"latitude": "999", "longitude": "106.8"},
+                    files={"audio": ("clip.m4a", b"\x00\x01", "audio/m4a")})
+    assert r.status_code == 422
+
+
+def test_sos_voice_helpers_unit():
+    """_clean drops whisper junk; translate of empty text is a no-op."""
+    from app.voice_sos import _clean, translate_id_en
+
+    assert _clean("Thanks for watching!") == ""
+    assert _clean("  ") == ""
+    assert _clean("tolong, kebakaran!") != ""
+    assert translate_id_en("") == (None, "none")

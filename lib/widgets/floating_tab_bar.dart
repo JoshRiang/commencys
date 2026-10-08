@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import 'glass.dart';
 
+/// Vertical clearance reserved above the system bottom inset for the
+/// floating glass tab bar (shared by [AppShell] padding and map overlays).
+const double kFloatingTabBarClearance = 96.0;
+
 /// Floating Apple Liquid Glass bottom navigation.
 ///
 /// Full-width glass pill floating over content; the Map destination sits in
