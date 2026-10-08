@@ -8,7 +8,7 @@ import '../theme/app_theme.dart';
 import 'glass.dart';
 import 'urgency_labels.dart';
 
-/// Type-SOS home widget: one minimal textbox + send, Laya triages.
+/// Type-SOS widget (SOS tab): one minimal textbox + send, Laya triages.
 ///
 /// Flow (minimal taps): type what happened → send → GPS auto-attached →
 /// POST `/api/sos` with the text as description → ticket lands with a

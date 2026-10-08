@@ -394,6 +394,9 @@ class _MapScreenState extends State<MapScreen> {
           ),
 
           // Draggable glass bottom sheet with nearby incidents.
+          // The handle + header row live INSIDE the scroll view (as a
+          // sliver) so a drag starting on the top part moves the sheet
+          // too — not only drags that start on the incident list.
           DraggableScrollableSheet(
             controller: _sheetController,
             initialChildSize: 0.28,
@@ -405,35 +408,47 @@ class _MapScreenState extends State<MapScreen> {
                 blur: 30,
                 highlight: true,
                 padding: EdgeInsets.zero,
-                child: Column(
-                  children: [
-                    Padding(
-                      padding:
-                          const EdgeInsets.only(top: 10, bottom: 4),
-                      child: Container(
-                        width: 42,
-                        height: 5,
-                        decoration: BoxDecoration(
-                          color: Colors.black
-                              .withValues(alpha: 0.18),
-                          borderRadius:
-                              BorderRadius.circular(999),
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                          18, 2, 18, 8),
-                      child: Row(
+                child: CustomScrollView(
+                  controller: scrollController,
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text(
-                            'Nearby',
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.3,
+                          Semantics(
+                            header: true,
+                            label:
+                                'Nearby incidents sheet handle — drag up or down to resize',
+                            child: Padding(
+                              padding: const EdgeInsets.only(
+                                  top: 10, bottom: 4),
+                              child: Center(
+                                child: Container(
+                                  width: 56,
+                                  height: 6,
+                                  decoration: BoxDecoration(
+                                    color: Colors.black
+                                        .withValues(alpha: 0.22),
+                                    borderRadius:
+                                        BorderRadius.circular(999),
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(
+                                18, 2, 18, 8),
+                            child: Row(
+                              children: [
+                                const Text(
+                                  'Nearby',
+                                  style: TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -0.3,
+                                  ),
+                                ),
                           const SizedBox(width: 8),
                           if (_clusterFilter != null)
                             GestureDetector(
@@ -467,36 +482,36 @@ class _MapScreenState extends State<MapScreen> {
                         ],
                       ),
                     ),
-                    Expanded(
-                      child: _loading
-                          ? const Center(
-                              child: CircularProgressIndicator())
-                          : filtered.isEmpty
-                              ? SingleChildScrollView(
-                                  controller:
-                                      scrollController,
-                                  child: Padding(
-                                    padding:
-                                        EdgeInsets.fromLTRB(
-                                            18, 4, 18, listClearance),
-                                    child: const EmptyState(
-                                      icon:
-                                          Icons.map_outlined,
-                                      title:
-                                          'Nothing to show yet',
-                                      hint:
-                                          'Incidents nearby will appear as pins here.',
-                                    ),
-                                  ),
-                                )
-                              : ListView.separated(
-                                  controller:
-                                      scrollController,
-                                  padding: EdgeInsets
-                                      .fromLTRB(
-                                          14, 0, 14, listClearance),
-                                  itemCount:
-                                      filtered.length,
+                        ],
+                      ),
+                    ),
+                    if (_loading)
+                      const SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 24),
+                          child: Center(
+                              child: CircularProgressIndicator()),
+                        ),
+                      )
+                    else if (filtered.isEmpty)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(
+                              18, 4, 18, listClearance),
+                          child: const EmptyState(
+                            icon: Icons.map_outlined,
+                            title: 'Nothing to show yet',
+                            hint:
+                                'Incidents nearby will appear as pins here.',
+                          ),
+                        ),
+                      )
+                    else
+                      SliverPadding(
+                        padding: EdgeInsets.fromLTRB(
+                            14, 0, 14, listClearance),
+                        sliver: SliverList.separated(
+                                  itemCount: filtered.length,
                                   separatorBuilder:
                                       (_, __) => const SizedBox(
                                           height: 8),
@@ -607,7 +622,7 @@ class _MapScreenState extends State<MapScreen> {
                                     );
                                   },
                                 ),
-                    ),
+                      ),
                   ],
                 ),
               );

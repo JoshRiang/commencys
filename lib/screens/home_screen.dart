@@ -3,11 +3,10 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass.dart';
 import '../widgets/server_dialog.dart';
-import '../widgets/type_sos_widget.dart';
-import '../widgets/voice_sos_widget.dart';
 
-/// Home tab: greeting header + SOS hero + quick actions, all in
+/// Home tab: greeting header + SOS entry + quick actions, all in
 /// Liquid Glass. Server setting lives here and on the Map top bar.
+/// SOS lives on the SOS tab (voice + type); this card is the entry.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -66,23 +65,22 @@ class HomeScreen extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                // SOS hero: red gradient core in a glass surround.
+                // SOS entry: red gradient core in a glass surround — taps
+                // into the SOS tab (voice + type). No one-tap send here.
                 LiquidGlass(
                   radius: 28,
                   blur: 28,
                   padding: const EdgeInsets.fromLTRB(20, 22, 20, 22),
+                  onTap: () => Navigator.pushNamed(context, '/sos'),
                   child: Column(
                     children: [
                       const Pill(
-                        label: 'ONE-TAP EMERGENCY',
+                        label: 'EMERGENCY',
                         bg: AppColors.accentSoft,
                         fg: AppColors.accentDeep,
                       ),
                       const SizedBox(height: 14),
-                      GestureDetector(
-                        onTap: () =>
-                            Navigator.pushNamed(context, '/sos'),
-                        child: Container(
+                      Container(
                           width: 168,
                           height: 168,
                           decoration: BoxDecoration(
@@ -111,20 +109,30 @@ class HomeScreen extends StatelessWidget {
                             ],
                           ),
                           alignment: Alignment.center,
-                          child: const Text(
-                            'SOS',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 52,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 1,
-                            ),
+                          child: const Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.sos_rounded,
+                                color: Colors.white,
+                                size: 44,
+                              ),
+                              SizedBox(height: 6),
+                              Text(
+                                'SOS',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 44,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ),
                       const SizedBox(height: 14),
                       const Text(
-                        'Hold the button in an emergency — your live location goes to nearby volunteers.',
+                        'Tap to open SOS — speak or type what happened, your live location goes to nearby volunteers.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: AppColors.secondary,
@@ -135,14 +143,6 @@ class HomeScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
-                // Fast SOS lanes: voice (tap → speak → auto-send) and
-                // type (one textbox → send, Laya triages). Both keep the
-                // glass hero language; full SOS screen stays one tap away.
-                const SectionHeader(title: 'Fast SOS'),
-                const VoiceSosWidget(),
-                const SizedBox(height: 12),
-                const TypeSosWidget(),
                 const SizedBox(height: 16),
                 const SectionHeader(title: 'What do you need?'),
                 GridView.count(

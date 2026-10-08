@@ -13,7 +13,7 @@ import '../theme/app_theme.dart';
 import 'glass.dart';
 import 'urgency_labels.dart';
 
-/// Voice-SOS home widget: one tap → speak → auto-send.
+/// Voice-SOS widget (SOS tab): one tap → speak → auto-send.
 ///
 /// Flow (minimal taps): tap mic → record (max 60 s, tap again to stop
 /// early) → GPS auto-attached → multipart POST `/api/sos-voice` with a

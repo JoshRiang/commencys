@@ -73,7 +73,8 @@ class ApiClient {
     return Incident.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
   }
 
-  /// One-tap SOS. Server persists + acknowledges (< 5 s) with P1 fail-safe
+  /// Text SOS (typed note + GPS → POST /api/sos). Used by the type-SOS
+  /// widget; the server persists + acknowledges (< 5 s) with P1 fail-safe
   /// urgency until triage; returns the stored ticket (criterion 2).
   Future<Incident> sendSos({
     required double latitude,
