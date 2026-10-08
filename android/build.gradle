@@ -15,12 +15,12 @@ subprojects {
 
 // The vibration 2.x plugin module compiles against android-33 while its
 // transitive androidx deps require compileSdk 34+; force all plugin
-// subprojects up (app-level compileSdk does not propagate into them).
+// library subprojects up (app-level compileSdk does not propagate into
+// them). withPlugin (not afterEvaluate) runs during each subproject's own
+// evaluation, before AGP creates variants.
 subprojects {
-    afterEvaluate { project ->
-        if (project.hasProperty("android")) {
-            project.android.compileSdk = 34
-        }
+    pluginManager.withPlugin("com.android.library") {
+        android.compileSdk = 34
     }
 }
 
