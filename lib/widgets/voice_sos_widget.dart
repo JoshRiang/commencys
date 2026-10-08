@@ -158,7 +158,7 @@ class _VoiceSosWidgetState extends State<VoiceSosWidget> {
         _progress = 1;
         _hint = 'Voice SOS received as ${UrgencyLabels.forUrgency(ticket.urgency)} — volunteers nearby are notified.';
       });
-      HapticFeedback.notificationSuccess();
+      HapticFeedback.heavyImpact();
       widget.onSent?.call();
     } catch (e) {
       if (!mounted) return;

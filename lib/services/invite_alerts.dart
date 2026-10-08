@@ -5,8 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:vibration/vibration.dart';
 
-import '../models/incident.dart';
-
 /// Global navigator key so a P1 invite can surface a full-screen alert from
 /// anywhere (including a WS callback with no BuildContext).
 class AppNav {
@@ -283,7 +281,7 @@ class InviteAlertService {
           ),
           // FLAG_INSISTENT: alarm repeats until the volunteer acts.
           // Cleared in [dismissEmergency] when the alert opens / is answered.
-          additionalFlags: const <int>[4],
+          additionalFlags: Int32List.fromList(<int>[4]),
           ticker: 'Emergency invite — your role is needed',
         ),
         iOS: const DarwinNotificationDetails(

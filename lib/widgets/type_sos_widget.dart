@@ -65,7 +65,7 @@ class _TypeSosWidgetState extends State<TypeSosWidget> {
       if (!mounted) return;
       setState(() => _ticket = ticket);
       _ctrl.clear();
-      HapticFeedback.notificationSuccess();
+      HapticFeedback.heavyImpact();
       widget.onSent?.call();
     } catch (e) {
       if (!mounted) return;
