@@ -3,9 +3,10 @@
 ![CI](https://github.com/JoshRiang/commencys/actions/workflows/ci.yml/badge.svg) ![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter) ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi) ![License](https://img.shields.io/badge/license-MIT-green)
 
 Community early-response platform (**Commencys**): one-tap SOS with GPS,
-incident reporting, geospatial alerts, WebSocket coordination, and an OSM map
-(Flutter `flutter_map`), backed by a **FastAPI** service (v1.2.0 + dispatch
-work) with heuristic-v2 AI triage + DBSCAN-lite dedup, **Laya agent
+voice SOS (mic hold-to-record → STT, P1 fail-safe), incident reporting,
+geospatial alerts, WebSocket coordination, and an OSM map
+(Flutter `flutter_map`), backed by a **FastAPI** service (v1.3.0 + voice SOS
++ P1 full-screen invites) with heuristic-v2 AI triage + DBSCAN-lite dedup, **Laya agent
 dispatch-auto**, a volunteer registry with targeted role invites, review
 queue + coordinator correct/split, an immutable audit trail, PostGIS-ready
 storage, and OSRM-labelled ETAs.
@@ -33,37 +34,48 @@ storage, and OSRM-labelled ETAs.
 
 ```
 lib/
-  main.dart                 # MaterialApp + named routes (AppShell, map-as-home)
+  main.dart                 # MaterialApp + named routes (AppShell, map-as-home, /p1-invite full-screen alert, navigatorKey AppNav.key)
   models/incident.dart      # Canonical ticket (urgency P1–P4, lifecycle incl. broadcast)
+  models/volunteer.dart      # Canonical role ids (medical|fire|rescue|security|driver|coordinator)
   services/
-    api_client.dart         # FastAPI HTTP client (incidents + SOS + dispatch + volunteers, 10 s timeout)
+    api_client.dart         # FastAPI HTTP client (incidents + SOS + voice SOS multipart + dispatch + volunteers, 10 s timeout)
     app_config.dart         # backend base URL (env default, in-app server setting, WS mapping)
+    invite_alerts.dart      # P1 invite alerts: full-screen intent + insistent sound + vibration (AppNav.key navigation)
     location_service.dart   # geolocator permission + stream + accuracy
+    volunteer_store.dart    # onboarding profile persistence (shared_preferences)
     websocket_service.dart  # live channel w/ auto-reconnect + status parsing
   screens/
     home_screen.dart        # dashboard + big SOS entry + backend server setting
-    sos_screen.dart         # one-tap SOS + StatusTimeline + 112/119 disclaimer
+    sos_screen.dart         # one-tap SOS + voice SOS widget + StatusTimeline + 112/119 disclaimer
+    role_picker_screen.dart # first-launch role onboarding (6 roles, multi-select)
+    p1_invite_screen.dart   # full-screen P1 invite alert (accept/decline, reached via /p1-invite)
     report_screen.dart      # incident report form (spec taxonomy)
-    map_screen.dart         # flutter_map (OSM) incident pins
+    map_screen.dart         # flutter_map (OSM) incident pins (clears kFloatingTabBarClearance)
     alerts_screen.dart      # live + REST alert feed
   widgets/
+    floating_tab_bar.dart  # floating glass tab bar (kFloatingTabBarClearance = 96.0)
+    voice_sos_widget.dart   # mic hold-to-record voice SOS (record + path_provider, max 60 s)
+    type_sos_widget.dart    # typed SOS form
+    urgency_labels.dart     # plain-language urgency labels (P1 Segera/NOW)
     status_timeline.dart    # acknowledged → broadcast → dispatched → resolved
   test/
     incident_test.dart      # 5 tests: WS URL mapping, base-URL normalisation, JSON round-trip, ticket incl. AI metadata, lifecycle order
     invite_test.dart        # 7 tests: targeted-invite parsing, broadcast defaults, role matching, invite round-trip, role ids, registration payload, matchedRoles
+    urgency_labels_test.dart # 3 tests: plain-language urgency labels
 backend/
-  app/main.py               # FastAPI: SOS/incidents/dispatch-auto/volunteers/review-queue/correct/split/audit/ETA/WS (<5 s ack)
+  app/main.py               # FastAPI: SOS/voice-SOS/incidents/dispatch-auto/volunteers/review-queue/correct/split/audit/ETA/WS (<5 s ack)
   app/models.py             # Pydantic schemas (taxonomy, P1–P4, lifecycle, sos category, reporter_name, AI urgency fields, Volunteer)
   app/ai_pipeline.py        # heuristic-v2 triage + DBSCAN-lite (0.65 threshold, advisory-only)
   app/laya_dispatch.py      # Laya agent client + keyword fallback (VALID_ROLES, never-blocks dispatch-auto)
-  tests/test_api.py         # 24 contract + AI-guard + dispatch tests incl. SOS budget guard
+  app/voice_sos.py          # voice SOS pipeline: multipart ingest → STT + offline ID→EN → P1 fail-safe ticket
+  tests/test_api.py         # 28 contract + AI-guard + dispatch + voice-SOS tests incl. SOS budget guard
 docs/                       # Jekyll Pages site (https://joshriang.github.io/commencys/)
   00-planning.md 01-analysis.md 02-design.md 03-implementation.md
   04-testing.md 05-deployment.md 06-maintenance.md
   ai-stations.md decisions.md api-contract.md db-schema.md
   evaluation-monitoring.md guardrails.md quality.md reference.md
   architecture.mmd architecture.png
-android/app/...             # INTERNET + location permissions
+android/app/...             # INTERNET + location + RECORD_AUDIO/VIBRATE/POST_NOTIFICATIONS/USE_FULL_SCREEN_INTENT; desugar + compileSdk 34 (vibration 3.x)
 ```
 
 ## Setup
@@ -72,11 +84,11 @@ android/app/...             # INTERNET + location permissions
 # Backend
 cd backend && pip install -r requirements.txt
 uvicorn app.main:app --host 0.0.0.0 --port 8791
-pytest -q   # 24/24
+pytest -q   # 28/28
 # Mobile (needs Flutter SDK)
 flutter pub get
 flutter analyze
-flutter test   # 5/5 + 7/7
+flutter test   # 5/5 + 7/7 + 3/3
 flutter run
 # Backend address: public demo default https://vector-server.tail53166f.ts.net/commencys
 # (funnel → :8791; writes need X-Demo-Key, baked into CI APKs via DEMO_KEY secret).
@@ -98,7 +110,7 @@ flutter run
    report / dispatch work with no Tailnet and no setup (or set the server
    URL in-app via the server icon, top right, for local dev).
 
-## Backend contract (13 REST + 1 WS)
+## Backend contract (14 REST + 1 WS)
 
 - `GET /health` → `{"status":"ok","service":"commencys-mvp"}`
 - `POST /api/sos` → 201 acknowledged P1 ticket (`category: "sos"`), strictly < 5 s
@@ -124,16 +136,16 @@ DB schema: [`docs/db-schema.md`](docs/db-schema.md).
 
 | Suite | Result |
 |-------|--------|
-| Backend `cd backend && pytest -q` | ✅ 24/24 (contract + SOS budget + AI guards + volunteers/dispatch/Laya) |
-| `flutter test` (`incident_test` + `invite_test`) | ✅ 5/5 + 7/7 |
+| Backend `cd backend && pytest -q` | ✅ 28/28 (contract + SOS budget + AI guards + volunteers/dispatch/Laya + voice SOS) |
+| `flutter test` (`incident_test` + `invite_test` + `urgency_labels_test`) | ✅ 5/5 + 7/7 + 3/3 |
 | `flutter analyze` | ✅ clean |
 
 Traceability: [`docs/04-testing.md`](docs/04-testing.md).
 
 ## Docs
 
-Start at [`docs/index.md`](docs/index.md) (status: v1.2.0 live + dispatch
-work, 24/24 + 5/5 + 7/7 green) or the published site
+Start at [`docs/index.md`](docs/index.md) (status: v1.3.0 live — voice SOS
++ P1 invites, 28/28 + 5/5 + 7/7 + 3/3 green) or the published site
 (https://joshriang.github.io/commencys/), then:
 
 Planning → [`docs/00-planning.md`](docs/00-planning.md) ·

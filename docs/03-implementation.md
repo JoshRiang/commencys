@@ -131,6 +131,36 @@ low-confidence fallback, pretranslated-payload capture.
   defaults, case-insensitive matching, round-trip, role ids, payload
   shape, `matchedRoles` helper.
 
+## Backend + client — voice SOS + P1 full-screen invites (PR #1, merged as `8425985`, released as v1.3.0)
+
+Hands-free emergency path + unmissable volunteer alerting:
+
+- `POST /api/sos-voice` (`backend/app/voice_sos.py`, 201): multipart
+  `audio` + GPS → server STT + offline ID→EN gloss → same P1 fail-safe
+  ack as `/api/sos` (wider 15 s budget); transcription failure still
+  yields a P1 ticket (`sos_voice_pending_triage`) — never dropped, never
+  5xx for model reasons. 4 new pytest guards (28/28 total).
+- Voice widget (`lib/widgets/voice_sos_widget.dart`): mic
+  hold-to-record (`record` + `path_provider`, AAC/m4a, max 60 s) →
+  auto-send multipart via `ApiClient.sendSosVoice`; typed SOS stays in
+  `lib/widgets/type_sos_widget.dart`.
+- P1 invites (`lib/services/invite_alerts.dart` + `lib/screens/p1_invite_screen.dart`):
+  full-screen intent notification (needs `USE_FULL_SCREEN_INTENT`),
+  insistent alarm sound (`additionalFlags` FLAG_INSISTENT, cleared on
+  open), emergency vibration (`vibration` 3.x), immediate in-app
+  navigation via `AppNav.key` → `/p1-invite` route (accept/decline).
+  New manifest permissions: `RECORD_AUDIO`, `VIBRATE`,
+  `POST_NOTIFICATIONS`, `USE_FULL_SCREEN_INTENT`.
+- Plain-language urgency (`lib/widgets/urgency_labels.dart`:
+  P1 Segera/NOW — see `test/urgency_labels_test.dart`, 3/3) +
+  themed app icon (`flutter_launcher_icons.yaml` → `assets/` +
+  `android/.../mipmap-*/`).
+- Map clearance fix: `kFloatingTabBarClearance = 96.0`
+  (`lib/widgets/floating_tab_bar.dart`) now cleared by both
+  `map_screen.dart` pins/sheet and `app_shell.dart`.
+- Android build fixes (CI-driven): core-library desugaring for
+  `flutter_local_notifications`, app `compileSdk = 34`.
+
 ## Client changes (detail, MVP baseline)
 
 - `sos_screen.dart`: after `sendSos`, shows the returned ticket id / urgency /
