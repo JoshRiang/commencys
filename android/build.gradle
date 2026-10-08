@@ -13,23 +13,6 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
-// The vibration 2.x plugin module compiles against android-33 while its
-// transitive androidx deps require compileSdk 34+; force all plugin
-// library subprojects up (app-level compileSdk does not propagate into
-// them). The override must run at the END of each subproject's evaluation
-// (afterEvaluate): withPlugin alone fires when the AGP plugin is applied,
-// before the plugin's own android{} block resets compileSdk to 33.
-subprojects { sub ->
-    sub.pluginManager.withPlugin("com.android.library") {
-        sub.afterEvaluate {
-            def ext = sub.extensions.findByName("android")
-            if (ext != null) {
-                ext.compileSdk = 34
-            }
-        }
-    }
-}
-
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }
