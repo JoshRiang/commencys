@@ -21,22 +21,22 @@ class SosScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         foregroundColor: AppColors.ink,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+      body: const SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(16, 4, 16, 24),
         child: Column(
           children: [
-            const Pill(
+            Pill(
               label: 'P1 · Segera / NOW — until triage',
               bg: AppColors.accentSoft,
               fg: AppColors.accentDeep,
               icon: Icons.shield_outlined,
             ),
-            const SizedBox(height: 16),
-            const VoiceSosWidget(),
-            const SizedBox(height: 12),
-            const TypeSosWidget(),
-            const SizedBox(height: 16),
-            const GlassCard(
+            SizedBox(height: 16),
+            VoiceSosWidget(),
+            SizedBox(height: 12),
+            TypeSosWidget(),
+            SizedBox(height: 16),
+            GlassCard(
               padding:
                   EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: Row(
